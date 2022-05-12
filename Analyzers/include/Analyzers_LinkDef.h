@@ -24,6 +24,7 @@
 #pragma link C++ class SkimTree_LJL+;
 #pragma link C++ class ZptWeight+;
 #pragma link C++ class GetZ0Weight+;
+#pragma link C++ class ISRUnfold+;
 #pragma link C++ class ISRAnalyzer+;
 
 #endif

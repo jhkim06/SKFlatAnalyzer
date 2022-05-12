@@ -1994,6 +1994,7 @@ void AnalyzerCore::WriteHist(){
   outfile->cd();
   for(std::map< TString, TH1D* >::iterator mapit = maphist_TH1D.begin(); mapit!=maphist_TH1D.end(); mapit++){
     TString this_fullname=mapit->second->GetName();
+    cout << "this_fullname " << this_fullname << endl;
     TString this_name=this_fullname(this_fullname.Last('/')+1,this_fullname.Length());
     TString this_suffix=this_fullname(0,this_fullname.Last('/'));
     TDirectory *dir = outfile->GetDirectory(this_suffix);
