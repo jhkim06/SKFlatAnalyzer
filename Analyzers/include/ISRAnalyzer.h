@@ -102,6 +102,8 @@ public:
 private:
     bool IsNominalRun=true;
     bool IsSkimmed=false;
+    
+    TUnfoldParameter* tunfold_parameter;
     //ISRUnfold tunfold_hists;
     //ISRUnfold* tunfold_hists; //
     

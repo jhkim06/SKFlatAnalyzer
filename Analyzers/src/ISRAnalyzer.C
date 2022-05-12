@@ -412,7 +412,8 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix, "dipt cut", eventweight);
                           
                           
-                          fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, false);
+                          //fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, false);
+                          fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, *tunfold_parameter, 0);
                       
                       //
                       // dilepton pt cut
@@ -792,11 +793,15 @@ void ISRAnalyzer::print_gen_particles(const vector<Gen>& gens){
 
 
 ISRAnalyzer::ISRAnalyzer(){
-    
+   
+    tunfold_parameter = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine, sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
+        sizeof(mass_window)/sizeof(double)-1, mass_window, sizeof(mass_window)/sizeof(double)-1, mass_window, false, true, true, true, "nominal_pt", "dipt", "dimass"};
+    /*
     create_tunfold_hist(sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
                         sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
                         sizeof(mass_window)/sizeof(double)-1, mass_window,
                         false, true, true, true, "dipt", "dimass");
+     */
 
 }
 
