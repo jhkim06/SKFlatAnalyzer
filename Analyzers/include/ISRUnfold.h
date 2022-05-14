@@ -5,6 +5,12 @@
 #include "SMPAnalyzerCore.h"
 #include "TUnfoldBinning.h"
 
+enum class TUnfold_Bin{
+    
+    smeared_bin=0, truth_bin, response_matrix
+    
+};
+
 class ISRUnfold : public SMPAnalyzerCore{
 public:
 
@@ -49,21 +55,14 @@ public:
         bool is_2D = false;
     };
     
-    //TH1D* get_hist1D(TString histname);
-    // write histograms
+    void fill_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode);
+    void fill_unfold_response_matrixs(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double> reco_weights, map<TString,double> gen_weights,
+                          const TUnfoldParameter& par); // response matrix,
     
-    // fill
-    // check axis0 name
-    // if 2D used, get bin index
-    void fill_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const int mode);
-    void fill_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double> weights);
-    
-    void fill_unfold_hist(TString histname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer = nullptr);
-    void fill_unfold_hist(TString histname, Double_t smeared_value, Double_t truth_value, Double_t weight, Double_t gen_weight); // response matrix, for bin zero gen*(1-rec)
-    
-    // for(const auto& [suffix,weight]:weights) FillHist(histname+suffix,value,weight,n_bin,x_min,x_max);
-    
+    void fill_unfold_hist(TString hname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer = nullptr);
     void fill_unfold_hist(TString hname, Double_t value, Double_t weight, TUnfoldBinning* bin_pointer = nullptr);
+    void fill_unfold_response_matrix(TString hname, Int_t value_smeared, Int_t value_truth, map<TString,double> reco_weights, map<TString,double> gen_weights, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr);
+    void fill_unfold_response_matrix(TString hname, Int_t value_smeared, Int_t value_truth, Double_t reco_weight, Double_t gen_weight, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr);
     
     // 1D
    

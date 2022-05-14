@@ -19,8 +19,6 @@ void ISRAnalyzer::initializeAnalyzer(){
       cout<<"[ISRAnalyzer::initializeAnalyzer] no input file"<<endl;
       exit(EXIT_FAILURE);
     }
-    
-
 }
 
 void ISRAnalyzer::executeEvent(){
@@ -356,8 +354,12 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
     
                       ///////////////////////map_weight//////////////////
                       map<TString,double> map_weight;
+                      map<TString,double> map_gen_weight;
+                      map<TString,double> map_reco_weight;
                       if(p.weightbit&NominalWeight){
                           map_weight[""]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
+                          map_gen_weight[""]=lumiweight*PUweight*zptweight;
+                          map_reco_weight[""]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           
                       }
                       if(p.weightbit&SystematicWeight){
@@ -365,31 +367,54 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_weight["_noPUweight"]=lumiweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_PUweight_up"]=lumiweight*PUweight_up*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_PUweight_down"]=lumiweight*PUweight_down*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
+                          map_gen_weight["_PUweight_up"]=lumiweight*PUweight_up*zptweight;
+                          map_reco_weight["_PUweight_up"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
+                          map_gen_weight["_PUweight_down"]=lumiweight*PUweight_down*zptweight;
+                          map_reco_weight["_PUweight_down"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
               
                           map_weight["_noprefireweight"]=lumiweight*PUweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_prefireweight_up"]=lumiweight*PUweight*prefireweight_up*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_prefireweight_down"]=lumiweight*PUweight*prefireweight_down*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
+                          map_gen_weight["_prefireweight_up"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_prefireweight_up"]=prefireweight_up*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
+                          map_gen_weight["_prefireweight_down"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_prefireweight_down"]=prefireweight_down*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           
                           map_weight["_nozptweight"]=lumiweight*PUweight*prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_noz0weight"]=lumiweight*PUweight*prefireweight*zptweight*RECOSF*IDSF*ISOSF*triggerSF;
-                          
                           map_weight["_noefficiencySF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight;
               
                           map_weight["_noRECOSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*IDSF*ISOSF*triggerSF;
                           map_weight["_RECOSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF_up*IDSF*ISOSF*triggerSF;
                           map_weight["_RECOSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF_down*IDSF*ISOSF*triggerSF;
+                          map_gen_weight["_RECOSF_up"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_RECOSF_up"]=prefireweight*z0weight*RECOSF_up*IDSF*ISOSF*triggerSF;
+                          map_gen_weight["_RECOSF_down"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_RECOSF_down"]=prefireweight*z0weight*RECOSF_down*IDSF*ISOSF*triggerSF;
               
                           map_weight["_noIDSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*ISOSF*triggerSF;
                           map_weight["_IDSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF_up*ISOSF*triggerSF;
                           map_weight["_IDSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF_down*ISOSF*triggerSF;
+                          map_gen_weight["_IDSF_up"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_IDSF_up"]=prefireweight*z0weight*RECOSF*IDSF_up*ISOSF*triggerSF;
+                          map_gen_weight["_IDSF_down"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_IDSF_down"]=prefireweight*z0weight*RECOSF*IDSF_down*ISOSF*triggerSF;
               
                           map_weight["_noISOSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*triggerSF;
                           map_weight["_ISOSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF_up*triggerSF;
                           map_weight["_ISOSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF_down*triggerSF;
+                          map_gen_weight["_ISOSF_up"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_ISOSF_up"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF_up*triggerSF;
+                          map_gen_weight["_ISOSF_down"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_ISOSF_down"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF_down*triggerSF;
               
                           map_weight["_notriggerSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF;
                           map_weight["_triggerSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_up;
                           map_weight["_triggerSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_down;
+                          map_gen_weight["_triggerSF_up"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_triggerSF_up"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_up;
+                          map_gen_weight["_triggerSF_down"]=lumiweight*PUweight*zptweight;
+                          map_reco_weight["_triggerSF_down"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_down;
                           
                       }
                       if(p.weightbit&PDFWeight){
@@ -408,14 +433,24 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           
                       }
                   
-                      if((*p.leps.at(0) + *p.leps.at(1)).Pt() < p.dilep_pt_cut){ // dilepton pt cut, (100 GeV default)
+                      if ((*p.leps.at(0)+*p.leps.at(1)).Pt()<p.dilep_pt_cut){ // dilepton pt cut, (100 GeV default)
                           if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix, "dipt cut", eventweight);
                           
+                          fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, *tunfold_parameter, TUnfold_Bin::smeared_bin);
+                         
+                          if (IsDYSample && prefix==""){ // prefix "" means non tautau event
+                              // response matrix
+                            
+                              const vector<Gen> gens=GetGens();
+                              Gen gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, gen_isr_l0_bare, gen_isr_l1_bare;
+                              vector<const Gen*> added_photons;
+                              int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
+                              fill_unfold_hists(channelname, prefix, suffix, (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight, *tunfold_parameter, TUnfold_Bin::truth_bin);
+                              fill_unfold_response_matrixs(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                                map_reco_weight, map_gen_weight, *tunfold_parameter);
+                          }
                           
-                          //fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, false);
-                          fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, *tunfold_parameter, 0);
                       
-                      //
                       // dilepton pt cut
                       /*
                        variable bin, pt cut not needed
