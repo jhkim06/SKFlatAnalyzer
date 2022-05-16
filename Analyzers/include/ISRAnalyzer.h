@@ -13,15 +13,15 @@ enum class DressedMode{
      
      Study the DR distribution when MotherMatch used and use it as delta R matching condition
      */
-    AllPHOTON = 0, MotherMatch, DRMatch, MotherDRMatch
+    AllPHOTON=0, MotherMatch, DRMatch, MotherDRMatch
 };
 
 enum GenMode{
-    PostFSR = 0, DressedDRp1, DressedDRp4, PreFSR
+    PostFSR=0, DressedDRp1, DressedDRp4, PreFSR
 };
 
 enum GenPID{
-    TOP = 6, ELECTRON = 11, MUON = 13, TAU = 15, PHOTON = 22, PROTON = 2212
+    TOP=6, ELECTRON=11, MUON=13, TAU=15, PHOTON=22, PROTON=2212
 };
 
 const int nmass_window = 6;
@@ -71,6 +71,10 @@ public:
     void save_gen_history(const vector<Gen>& gens, const Gen& lepton, vector<int>& partindex_vector, const int index_limit = -1);
     void print_gen_particles(const vector<Gen>& gens);
     
+    void set_job_number(int job_num){
+        job_number=job_num;
+    }
+    
     ISRAnalyzer();
     ~ISRAnalyzer();
     
@@ -102,13 +106,9 @@ public:
 private:
     bool IsNominalRun=true;
     bool IsSkimmed=false;
+    int job_number;
     
     TUnfoldParameter* tunfold_parameter;
-    //ISRUnfold tunfold_hists;
-    //ISRUnfold* tunfold_hists; //
-    
-    // tunfold_pt_2d, tunfold_mass_2d, tunfold_pt_1d, tunfold_mass_1d
-
 };
 
 

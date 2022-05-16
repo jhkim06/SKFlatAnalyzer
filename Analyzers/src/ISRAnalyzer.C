@@ -3,6 +3,7 @@
 void ISRAnalyzer::initializeAnalyzer(){
 
     SMPAnalyzerCore::initializeAnalyzer(); // Z pt, Rochester, Z0
+    ISRUnfold::initializeISRUnfold(job_number);
     
     if(HasFlag("nobjet")){
       vector<JetTagging::Parameters> jtps={JetTagging::Parameters(JetTagging::DeepCSV,JetTagging::Medium,JetTagging::mujets,JetTagging::mujets)};
@@ -828,15 +829,11 @@ void ISRAnalyzer::print_gen_particles(const vector<Gen>& gens){
 
 
 ISRAnalyzer::ISRAnalyzer(){
-   
+  
+    job_number=-1;
+    
     tunfold_parameter = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine, sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
-        sizeof(mass_window)/sizeof(double)-1, mass_window, sizeof(mass_window)/sizeof(double)-1, mass_window, false, true, true, true, "nominal_pt", "dipt", "dimass"};
-    /*
-    create_tunfold_hist(sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
-                        sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
-                        sizeof(mass_window)/sizeof(double)-1, mass_window,
-                        false, true, true, true, "dipt", "dimass");
-     */
+        sizeof(mass_window)/sizeof(double)-1, mass_window, sizeof(mass_window)/sizeof(double)-1, mass_window, false, true, true, true, "dipt", "dimass"};
 
 }
 
