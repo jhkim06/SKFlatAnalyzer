@@ -3,7 +3,7 @@
 void ISRAnalyzer::initializeAnalyzer(){
 
     SMPAnalyzerCore::initializeAnalyzer(); // Z pt, Rochester, Z0
-    ISRUnfold::initializeISRUnfold(job_number);
+    ISRUnfold::initializeISRUnfold(job_number); // to save tunfold bin definition only once
     
     if(HasFlag("nobjet")){
       vector<JetTagging::Parameters> jtps={JetTagging::Parameters(JetTagging::DeepCSV,JetTagging::Medium,JetTagging::mujets,JetTagging::mujets)};
@@ -44,8 +44,8 @@ void ISRAnalyzer::executeEvent(){
         int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0_bare, gen_isr_l1_bare, PostFSR);
         DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
         
-        if(DY_index == -1) // DY leptons not properly selected
-            return;
+        //if(DY_index == -1) // DY leptons not properly selected
+        //    return;
         
         /*
         cout << "hs dimass: " << (gen_l0_bare+gen_l1_bare).M() << " jh dimass: " << (gen_isr_l0_bare+gen_isr_l1_bare).M() << " DY index: " << DY_index << endl;
@@ -178,7 +178,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
     
   map<TString, vector<Muon>> map_muons;
   map<TString, vector<Electron>> map_electrons;
-  map<TString, ISRParameter> map_parameter; // Parameter defined in SMPAnalyzer
+  map<TString, ISRParameter> map_parameter; // Parameter(bas) defined in SMPAnalyzer, ISRParameter(inherited)
   
   if(channelname.Contains(TRegexp("mm20[0-9][0-9]"))){
       
@@ -188,8 +188,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
     map_parameter[""]=p.Clone(MakeLeptonPointerVector(map_muons[""]),
                   (IsNominalRun?NominalWeight:0)
                   +(HasFlag("SYS")&&!IsDATA?SystematicWeight:0)
-                  +(HasFlag("PDFSYS")&&!IsDATA?PDFWeight:0)
-                  );
+                  +(HasFlag("PDFSYS")&&!IsDATA?PDFWeight:0));
     
     if(HasFlag("SYS")){
       map_muons["_scale_up"]=MuonMomentumCorrection(map_muons[""],+1);
@@ -209,8 +208,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
     map_parameter[""]=p.Clone(MakeLeptonPointerVector(map_electrons[""]),
                   (IsNominalRun?NominalWeight:0)
                   +(HasFlag("SYS")&&!IsDATA?SystematicWeight:0)
-                  +(HasFlag("PDFSYS")&&!IsDATA?PDFWeight:0)
-                  );
+                  +(HasFlag("PDFSYS")&&!IsDATA?PDFWeight:0));
 
     if(HasFlag("SYS")){
       map_electrons["_scale_up"]=ScaleElectrons(map_electrons[""],1);
@@ -236,7 +234,6 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
       
       map_electrons["_noEcor"]=ElectronEnergyCorrection(map_electrons[""],-1,0);
       map_parameter["_noEcor"]=p.Clone(MakeLeptonPointerVector(map_electrons["_noEcor"]));
-
     }
   }else if(channelname.Contains(TRegexp("em20[0-9][0-9]"))){
     ISRParameter p;
@@ -435,7 +432,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                       }
                   
                       if ((*p.leps.at(0)+*p.leps.at(1)).Pt()<p.dilep_pt_cut){ // dilepton pt cut, (100 GeV default)
-                          if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix, "dipt cut", eventweight);
+                          if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix, "dipt cut", eventweight*RECOSF*IDSF*ISOSF*triggerSF);
                           
                           fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, *tunfold_parameter, TUnfold_Bin::smeared_bin);
                          
@@ -473,7 +470,6 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                               //else cout<<"no matching"<<endl;
                           }
                       }
-                      // effect of over/underflow bin
                       
                   }// dilepton pt cut
               } // OS
@@ -485,33 +481,32 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
 void ISRAnalyzer::fill_ISR_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> map_weight){
     
     // as first try, get only essential histogram.
-    
     TLorentzVector dilepton = (*l0) + (*l1);
     double dimass = dilepton.M();
     double dipt = dilepton.Pt();
    
     // mass dependent histograms
-    for(int i = 0; i < nmass_window; i++){
+    for (int i = 0; i < nmass_window; i++){
         double low_mass_edge = mass_window[i];
         double high_mass_edge = mass_window[i+1];
         
         double* mass_bin_pointer = (double*)mass_bin_fine_muon;
         int n_mass_bin = n_mass_bin_fine_muon-1;
         
-        if(i == 0 && channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
+        if (i == 0 && channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
             low_mass_edge = 50;
             mass_bin_pointer = (double*)mass_bin_fine_muon;
             n_mass_bin = n_mass_bin_fine_electron-1;
         }
         
-        if(dimass > low_mass_edge && dimass < high_mass_edge){
+        if (dimass > low_mass_edge && dimass < high_mass_edge){
             
             string m = "m";
             string to = "to";
             string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
             
-            FillHist(channelname+"/"+pre+"dilep_pt_m"+ mass_window_postfix +suf, dipt, map_weight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
-            FillHist(channelname+"/"+pre+"dilep_mass_m"+ mass_window_postfix +suf, dimass, map_weight, n_mass_bin, mass_bin_pointer);
+            FillHist(channelname+"/"+pre+"dilep_pt_"+ mass_window_postfix +suf, dipt, map_weight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
+            FillHist(channelname+"/"+pre+"dilep_mass_"+ mass_window_postfix +suf, dimass, map_weight, n_mass_bin, mass_bin_pointer);
         }
     }// loop mass window
 }

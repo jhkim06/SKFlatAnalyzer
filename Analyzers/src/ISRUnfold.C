@@ -56,7 +56,7 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     if (mode == TUnfold_Bin::smeared_bin) bin_prefix = "smeared";
     else if (mode == TUnfold_Bin::truth_bin) bin_prefix = "truth";
     // check dimension of bin   
-    fill_unfold_hist(channelname+"/"+pre+par.bin_name+"_"+bin_prefix, index, weights, bin_pointer);
+    fill_unfold_hist(channelname+"/"+pre+par.bin_name+"_"+bin_prefix+suf, index, weights, bin_pointer);
 }
 
 void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double> reco_weights, map<TString,double> gen_weights, const TUnfoldParameter& par)
@@ -110,7 +110,7 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
         }
     }
     string bin_prefix="responseM";
-    fill_unfold_response_matrix(channelname+"/"+pre+par.bin_name+"_"+bin_prefix, index_smeared, index_truth,
+    fill_unfold_response_matrix(channelname+"/"+pre+par.bin_name+"_"+bin_prefix+suf, index_smeared, index_truth,
                      reco_weights, gen_weights, bin_pointer_smeared, bin_pointer_truth);
 }
 
