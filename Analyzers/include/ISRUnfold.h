@@ -20,7 +20,8 @@ public:
         
         TUnfoldParameter(){}
         ~TUnfoldParameter(){}
-        
+       
+        // parameter for 2D binning  
         TUnfoldParameter(const int n_axis0_smeared, const double* axis0_smeared,
                          const int n_axis0_truth, const double* axis0_truth,
                          const int n_axis1_smeared, const double* axis1_smeared,
@@ -32,7 +33,16 @@ public:
         first_axis_name{first_axis_name}, second_axis_name{second_axis_name}, is_2D{true} {
             bin_name = "2D_"+(string)first_axis_name+"_"+(string)second_axis_name;
         }
-        
+
+        // parameter for 1D binning  
+        TUnfoldParameter(const int n_axis0_smeared, const double* axis0_smeared,
+                         const int n_axis0_truth, const double* axis0_truth,
+                         bool first_axis_uf, bool first_axis_of,
+                         const char* first_axis_name) : n_first_axis_smeared{n_axis0_smeared}, first_axis_smeared{axis0_smeared}, n_first_axis_truth{n_axis0_truth}, first_axis_truth{axis0_truth},
+        use_first_axis_uf{first_axis_uf}, use_first_axis_of{first_axis_of}, 
+        first_axis_name{first_axis_name}, is_2D{false} {
+            bin_name = "1D_"+(string)first_axis_name;
+        }
         
         int n_first_axis_smeared;
         const double* first_axis_smeared;
@@ -65,10 +75,10 @@ public:
     void fill_unfold_response_matrixs(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double> reco_weights, map<TString,double> gen_weights,
                           const TUnfoldParameter& par); // response matrix,
     
-    void fill_unfold_hist(TString hname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer = nullptr);
-    void fill_unfold_hist(TString hname, Double_t value, Double_t weight, TUnfoldBinning* bin_pointer = nullptr);
-    void fill_unfold_response_matrix(TString hname, Int_t value_smeared, Int_t value_truth, map<TString,double> reco_weights, map<TString,double> gen_weights, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr);
-    void fill_unfold_response_matrix(TString hname, Int_t value_smeared, Int_t value_truth, Double_t reco_weight, Double_t gen_weight, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr);
+    void fill_unfold_hist(TString hname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer = nullptr, bool is_2D = true);
+    void fill_unfold_hist(TString hname, Double_t value, Double_t weight, TUnfoldBinning* bin_pointer = nullptr, bool is_2D = true);
+    void fill_unfold_response_matrix(TString hname, Double_t value_smeared, Double_t value_truth, map<TString,double> reco_weights, map<TString,double> gen_weights, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr, bool is_2D = true);
+    void fill_unfold_response_matrix(TString hname, Double_t value_smeared, Double_t value_truth, Double_t reco_weight, Double_t gen_weight, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr, bool is_2D = true);
     
     virtual void WriteHist();
    

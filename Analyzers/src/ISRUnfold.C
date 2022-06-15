@@ -12,7 +12,7 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     double dimass = dilepton.M();
     double dipt = dilepton.Pt();
 
-    int index{-1};
+    double index{-1};
     TUnfoldBinning* bin_pointer = nullptr;
 
     // get desired bin definition
@@ -44,19 +44,37 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     }
     
     if(par.is_2D == true){
-        if(bin_pointer->GetDistributionAxisLabel(0) == "dipt"){
+        if (bin_pointer->GetDistributionAxisLabel(0) == "dipt"){
             index = bin_pointer->GetGlobalBinNumber(dipt, dimass);
         }
-        else{
+        else {
             index = bin_pointer->GetGlobalBinNumber(dimass, dipt);
         }
+    }
+    else{
+        // 1D binning
+
+        const string pt_str = "dipt";
+        const string mass_str = "dimass";
+
+        if (full_bin_name.find(pt_str)!=string::npos){
+            index = dipt;
+        }
+        else if (full_bin_name.find(mass_str)!=string::npos){
+            index = dimass;
+        }
+        else {
+            cout <<"ISRUnfold::fill_unfold_hists check bin definition." << endl;
+            exit(EXIT_FAILURE);
+        }
+
     }
     
     string bin_prefix;
     if (mode == TUnfold_Bin::smeared_bin) bin_prefix = "smeared";
     else if (mode == TUnfold_Bin::truth_bin) bin_prefix = "truth";
     // check dimension of bin   
-    fill_unfold_hist(channelname+"/"+pre+par.bin_name+"_"+bin_prefix+suf, index, weights, bin_pointer);
+    fill_unfold_hist(channelname+"/"+pre+par.bin_name+"_"+bin_prefix+suf, index, weights, bin_pointer, par.is_2D);
 }
 
 void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double> reco_weights, map<TString,double> gen_weights, const TUnfoldParameter& par)
@@ -98,7 +116,7 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
         bin_pointer_truth=get<1>(map_tunfoldbins[full_bin_name]);
     }
     
-    int index_smeared{-1}, index_truth{-1};
+    double index_smeared{-1}, index_truth{-1};
     if (par.is_2D == true){
         if (bin_pointer_smeared->GetDistributionAxisLabel(0)=="dipt"){
             index_smeared=bin_pointer_smeared->GetGlobalBinNumber(dipt_smeared, dimass_smeared);
@@ -109,29 +127,51 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
             index_truth=bin_pointer_truth->GetGlobalBinNumber(dimass_truth, dipt_truth);
         }
     }
+    else {
+        
+        const string pt_str = "dipt";
+        const string mass_str = "dimass";
+
+        if (full_bin_name.find(pt_str)!=string::npos){
+
+            index_smeared = dipt_smeared;
+            index_truth = dipt_truth;
+        }
+        else if (full_bin_name.find(mass_str)!=string::npos){
+            index_smeared = dimass_smeared;
+            index_truth = dimass_truth;
+        }
+        else {
+            cout <<"ISRUnfold::fill_unfold_hists check bin definition." << endl;
+            exit(EXIT_FAILURE);
+        }
+
+    }
+
     string bin_prefix="responseM";
     fill_unfold_response_matrix(channelname+"/"+pre+par.bin_name+"_"+bin_prefix+suf, index_smeared, index_truth,
-                     reco_weights, gen_weights, bin_pointer_smeared, bin_pointer_truth);
+                     reco_weights, gen_weights, bin_pointer_smeared, bin_pointer_truth, par.is_2D);
 }
 
-void ISRUnfold::fill_unfold_hist(TString histname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer){
+void ISRUnfold::fill_unfold_hist(TString histname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer, bool is_2D){
 
     for (const auto& [suffix,weight]:weights){
-        fill_unfold_hist(histname+suffix,value,weight, bin_pointer);
+        fill_unfold_hist(histname+suffix,value,weight, bin_pointer, is_2D);
     }
 }
 
-void ISRUnfold::fill_unfold_response_matrix(TString hname, Int_t value_smeared, Int_t value_truth, map<TString,double> reco_weights, map<TString,double> gen_weights, TUnfoldBinning* bin_pointer_smeared, TUnfoldBinning* bin_pointer_truth)
+void ISRUnfold::fill_unfold_response_matrix(TString hname, Double_t value_smeared, Double_t value_truth, map<TString,double> reco_weights, map<TString,double> gen_weights, TUnfoldBinning* bin_pointer_smeared, TUnfoldBinning* bin_pointer_truth, bool is_2D)
 {
     for (const auto& [suffix,reco_weight]:reco_weights){
-        fill_unfold_response_matrix(hname+suffix, value_smeared, value_truth, reco_weight, gen_weights[suffix], bin_pointer_smeared, bin_pointer_truth);
+        fill_unfold_response_matrix(hname+suffix, value_smeared, value_truth, reco_weight, gen_weights[suffix], bin_pointer_smeared, bin_pointer_truth, is_2D);
     }
 }
 
-void ISRUnfold::fill_unfold_hist(TString hname, Double_t value, Double_t weight, TUnfoldBinning* bin_pointer){
+void ISRUnfold::fill_unfold_hist(TString hname, Double_t value, Double_t weight, TUnfoldBinning* bin_pointer, bool is_2D){
     TH1D *this_hist = GetHist1D(hname);
     if (!this_hist){
-        this_hist = (TH1D*) bin_pointer->CreateHistogram(hname);
+
+        this_hist = (TH1D*) bin_pointer->CreateHistogram(hname, !is_2D);
 
         this_hist->SetDirectory(NULL);
         maphist_TH1D[hname] = this_hist;
@@ -139,19 +179,20 @@ void ISRUnfold::fill_unfold_hist(TString hname, Double_t value, Double_t weight,
   this_hist->Fill(value, weight);
 }
 
-void ISRUnfold::fill_unfold_response_matrix(TString hname, Int_t value_smeared, Int_t value_truth, Double_t reco_weight, Double_t gen_weight, TUnfoldBinning* bin_pointer_smeared, TUnfoldBinning* bin_pointer_truth)
+void ISRUnfold::fill_unfold_response_matrix(TString hname, Double_t value_smeared, Double_t value_truth, Double_t reco_weight, Double_t gen_weight, TUnfoldBinning* bin_pointer_smeared, TUnfoldBinning* bin_pointer_truth, bool is_2D)
 {
     TH2D *this_hist = GetHist2D(hname);
 
     if (!this_hist){
-        this_hist = (TH2D*) TUnfoldBinning::CreateHistogramOfMigrations(bin_pointer_truth, bin_pointer_smeared, hname);
+        this_hist = (TH2D*) TUnfoldBinning::CreateHistogramOfMigrations(bin_pointer_truth, bin_pointer_smeared, hname, !is_2D, !is_2D);
 
         this_hist->SetDirectory(NULL);
         maphist_TH2D[hname] = this_hist;
   }
     
   this_hist->Fill(value_truth, value_smeared, reco_weight*gen_weight);
-  this_hist->Fill(value_truth, 0., (1-reco_weight)*gen_weight); // bin zero
+  if (is_2D) this_hist->Fill(value_truth, 0., (1-reco_weight)*gen_weight); // bin zero
+  else this_hist->Fill(value_truth, -1., (1-reco_weight)*gen_weight); // bin zero 
 }
 
 void ISRUnfold::WriteHist(){

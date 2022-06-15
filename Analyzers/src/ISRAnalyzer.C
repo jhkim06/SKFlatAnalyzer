@@ -4,14 +4,14 @@ void ISRAnalyzer::initializeAnalyzer(){
 
     SMPAnalyzerCore::initializeAnalyzer(); // Z pt, Rochester, Z0
     ISRUnfold::initializeISRUnfold(job_number); // to save tunfold bin definition only once
-    
+
     if(HasFlag("nobjet")){
       vector<JetTagging::Parameters> jtps={JetTagging::Parameters(JetTagging::DeepCSV,JetTagging::Medium,JetTagging::mujets,JetTagging::mujets)};
       mcCorr->SetJetTaggingParameters(jtps);
     }
-    
+
     IsNominalRun = !HasFlag("SYS") && !HasFlag("PDFSYS");
-    
+
     if(fChain->GetListOfFiles()->GetEntries()){
       TString filename = fChain->GetListOfFiles()->At(0)->GetTitle();
       if(filename.Contains("SkimTree_")) IsSkimmed=true;
@@ -43,10 +43,10 @@ void ISRAnalyzer::executeEvent(){
         vector<const Gen*> added_photons;
         int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0_bare, gen_isr_l1_bare, PostFSR);
         DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
-        
+
         //if(DY_index == -1) // DY leptons not properly selected
         //    return;
-        
+
         /*
         cout << "hs dimass: " << (gen_l0_bare+gen_l1_bare).M() << " jh dimass: " << (gen_isr_l0_bare+gen_isr_l1_bare).M() << " DY index: " << DY_index << endl;
         cout << "hs index 0: " << gen_l0_bare.Index() << " hs index 1: " << gen_l1_bare.Index() << endl;
@@ -54,7 +54,7 @@ void ISRAnalyzer::executeEvent(){
         cout << "hs dimass: " << (gen_l0+gen_l1).M() << " jh dimass: " << (gen_isr_l0+gen_isr_l1).M() << " DY index: " << DY_index << endl;
         cout << "jh index 0: " << gen_isr_l0.Index() << " jh index 1: " << gen_isr_l1.Index() << endl;
         */
-        
+
         if(abs(gen_isr_l0_bare.PID()) == MUON){
             FillHist("Muon_DiLepton_Mass_preFSR", (gen_isr_l0 + gen_isr_l1).M(), lumiweight, 3000, 0, 3000);
             FillHist("Muon_DiLepton_Mass_postFSR", (gen_isr_l0_bare + gen_isr_l1_bare).M(), lumiweight, 3000, 0, 3000);
@@ -82,7 +82,7 @@ void ISRAnalyzer::executeEvent(){
 
       /*
         if (abs((gen_l0_bare+gen_l1_bare).M()-(gen_isr_l0_bare+gen_isr_l1_bare).M()) > 1e-5){
-            
+
             //get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR);
             get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
             cout << "hs pre fsr mass: " << (gen_l0+gen_l1).M() << " jh pre fsr mass: " << (gen_isr_l0+gen_isr_l1).M() << endl;
@@ -101,10 +101,10 @@ void ISRAnalyzer::executeEvent(){
 
     //
     if(!PassMETFilter()) return;
-    
+
     TString prefix="";
     if(HasFlag("bjet")) prefix+="bjet/";
-    
+
     if(IsNominalRun){
       FillCutflow(prefix+tauprefix+"cutflow","lumi",lumiweight);
       FillCutflow(prefix+tauprefix+"cutflow","PU",lumiweight*PUweight);
@@ -112,8 +112,8 @@ void ISRAnalyzer::executeEvent(){
       FillCutflow(prefix+tauprefix+"cutflow","zpt",lumiweight*PUweight*prefireweight*zptweight);
       FillCutflow(prefix+tauprefix+"cutflow","z0",lumiweight*PUweight*prefireweight*zptweight*z0weight);
     }
-    
-    // NEED TO STUDY!
+
+    // NEED TO STUDY
     int n_bjet=0;
     if(HasFlag("nobjet")){
       std::vector<Jet> jets=GetJets("tightLepVeto",30,2.7);
@@ -123,11 +123,12 @@ void ISRAnalyzer::executeEvent(){
       for(const auto& jet:jets)
         if(mcCorr->IsBTagged_2a(jtp,jet))
             n_bjet++;
-      
+
       if(HasFlag("nobjet")&&n_bjet) return;
       if(IsNominalRun) FillCutflow(prefix+tauprefix+"cutflow","BJetCut",lumiweight*PUweight*prefireweight*zptweight*z0weight);
     }
-    
+
+    // analysis histograms
     if(DataYear==2016){
       vector<TString> muontrigger={
         "HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_v",
@@ -175,34 +176,34 @@ void ISRAnalyzer::executeEvent(){
 }
 
 void ISRAnalyzer::executeEventWithChannelName(TString channelname){
-    
+
   map<TString, vector<Muon>> map_muons;
   map<TString, vector<Electron>> map_electrons;
   map<TString, ISRParameter> map_parameter; // Parameter(bas) defined in SMPAnalyzer, ISRParameter(inherited)
-  
+
   if(channelname.Contains(TRegexp("mm20[0-9][0-9]"))){
-      
+
     ISRParameter p("IDISO_SF_MediumID_trkIsoLoose_Q","",{"Mu17Leg1_MediumID_trkIsoLoose_Q","Mu8Leg2_MediumID_trkIsoLoose_Q"}, 20., 10.);
-    
+
     map_muons[""]=MuonMomentumCorrection(SMPGetMuons("POGMediumWithLooseTrkIso",0.0,2.4),0,3);
     map_parameter[""]=p.Clone(MakeLeptonPointerVector(map_muons[""]),
                   (IsNominalRun?NominalWeight:0)
                   +(HasFlag("SYS")&&!IsDATA?SystematicWeight:0)
                   +(HasFlag("PDFSYS")&&!IsDATA?PDFWeight:0));
-    
+
     if(HasFlag("SYS")){
       map_muons["_scale_up"]=MuonMomentumCorrection(map_muons[""],+1);
       map_parameter["_scale_up"]=p.Clone(MakeLeptonPointerVector(map_muons["_scale_up"]));
-                     
+
       map_muons["_scale_down"]=MuonMomentumCorrection(map_muons[""],-1);
       map_parameter["_scale_down"]=p.Clone(MakeLeptonPointerVector(map_muons["_scale_down"]));
-      
+
       map_muons["_noroccor"]=MuonMomentumCorrection(map_muons[""],0,-1);
       map_parameter["_noroccor"]=p.Clone(MakeLeptonPointerVector(map_muons["_noroccor"]));
     }
   }else if(channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
     ISRParameter p("ID_SF_MediumID_Q",{"Ele23Leg1_MediumID_Q","Ele12Leg2_MediumID_Q"},25.,15.);
-    
+
     map_electrons["_noroccor"]=SMPGetElectrons("passMediumID",0.0,2.5);
     map_electrons[""]=ElectronEnergyCorrection(map_electrons["_noroccor"],0,0);
     map_parameter[""]=p.Clone(MakeLeptonPointerVector(map_electrons[""]),
@@ -214,15 +215,15 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
       map_electrons["_scale_up"]=ScaleElectrons(map_electrons[""],1);
       std::sort(map_electrons["_scale_up"].begin(),map_electrons["_scale_up"].end(),PtComparing);
       map_parameter["_scale_up"]=p.Clone(MakeLeptonPointerVector(map_electrons["_scale_up"]));
-      
+
       map_electrons["_scale_down"]=ScaleElectrons(map_electrons[""],-1);
       std::sort(map_electrons["_scale_down"].begin(),map_electrons["_scale_down"].end(),PtComparing);
       map_parameter["_scale_down"]=p.Clone(MakeLeptonPointerVector(map_electrons["_scale_down"]));
-      
+
       map_electrons["_smear_up"]=SmearElectrons(map_electrons[""],1);
       std::sort(map_electrons["_smear_up"].begin(),map_electrons["_smear_up"].end(),PtComparing);
       map_parameter["_smear_up"]=p.Clone(MakeLeptonPointerVector(map_electrons["_smear_up"]));
-      
+
       map_electrons["_smear_down"]=SmearElectrons(map_electrons[""],-1);
       std::sort(map_electrons["_smear_down"].begin(),map_electrons["_smear_down"].end(),PtComparing);
       map_parameter["_smear_down"]=p.Clone(MakeLeptonPointerVector(map_electrons["_smear_down"]));
@@ -231,7 +232,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
       map_parameter["_eta2p5"]=p.Clone(MakeLeptonPointerVector(map_electrons["_eta2p5"]));
 
       map_parameter["_noroccor"]=p.Clone(MakeLeptonPointerVector(map_electrons["_noroccor"]));
-      
+
       map_electrons["_noEcor"]=ElectronEnergyCorrection(map_electrons[""],-1,0);
       map_parameter["_noEcor"]=p.Clone(MakeLeptonPointerVector(map_electrons["_noEcor"]));
     }
@@ -262,20 +263,20 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
     cout<<"[ISRAnalyzer::executeEventWithPrefix] wrong channelname"<<endl;
     return;
   }
-  
+
   ///////////////////////lepton selection///////////////////////
   for(const auto& [suffix,p]:map_parameter){
       TString prefix=tauprefix;
       double eventweight=lumiweight*PUweight*prefireweight*z0weight*zptweight;
 
       if(p.weightbit&NominalWeight) FillHist(channelname+"/"+prefix+"nlepton"+suffix,p.leps.size(),eventweight,10,0,10);
-      
+
       if(p.leps.size()>=2){
           if(HasFlag("REGION_cf")){
               if(p.leps.at(0)->Charge()>0 && p.leps.at(1)->Charge()>0) prefix="pp_"+prefix;
               else if(p.leps.at(0)->Charge()<0 && p.leps.at(1)->Charge()<0) prefix="mm_"+prefix;
               else continue;
-              
+
           }else{
               if(p.leps.at(0)->Charge() * p.leps.at(1)->Charge()>0) prefix="ss_"+prefix;
           }
@@ -283,15 +284,14 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
               if(p.leps.at(0)->LeptonFlavour() == p.leps.at(1)->LeptonFlavour()) continue;
           }
           if(p.weightbit&NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"dilepton",eventweight);
-          
+
           if(p.leps.at(0)->Pt() > p.lep0ptcut && p.leps.at(1)->Pt() > p.lep1ptcut){ // lepton eta cut applied in lepton selection,
-              
+
               if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"ptcut",eventweight);
-              
+
               if(p.leps.at(0)->Charge() * p.leps.at(1)->Charge() < 0){
                   if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"OS",eventweight);
-                  
-                 
+
                       /////////////////efficiency scale factors///////////////////
                       double IDSF=1.,IDSF_up=1.,IDSF_down=1.;
                       double ISOSF=1.,ISOSF_up=1.,ISOSF_down=1.;
@@ -305,43 +305,43 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                                   double this_pt,this_eta;
                                   this_pt=((Electron*)lep)->UncorrPt();
                                   this_eta=((Electron*)lep)->scEta();
-                                  
+
                                   double this_RECOSF=mcCorr->ElectronReco_SF(this_eta,this_pt,0);
                                   double this_RECOSF_up=mcCorr->ElectronReco_SF(this_eta,this_pt,1);
                                   double this_RECOSF_down=mcCorr->ElectronReco_SF(this_eta,this_pt,-1);
                                   RECOSF*=this_RECOSF; RECOSF_up*=this_RECOSF_up; RECOSF_down*=this_RECOSF_down;
-                                  
+
                               }else if(lep->LeptonFlavour()==Lepton::MUON){
                                   LeptonIDSF_key=p.muonIDSF;
                                   double this_ISOSF=Lepton_SF(p.muonISOSF,lep,0);
                                   double this_ISOSF_up=Lepton_SF(p.muonISOSF,lep,1);
                                   double this_ISOSF_down=Lepton_SF(p.muonISOSF,lep,-1);
                                   ISOSF*=this_ISOSF; ISOSF_up*=this_ISOSF_up; ISOSF_down*=this_ISOSF_down;
-                                  
+
                               }
                               double this_IDSF=Lepton_SF(LeptonIDSF_key,lep,0);
                               double this_IDSF_up=Lepton_SF(LeptonIDSF_key,lep,1);
                               double this_IDSF_down=Lepton_SF(LeptonIDSF_key,lep,-1);
                               IDSF*=this_IDSF; IDSF_up*=this_IDSF_up; IDSF_down*=this_IDSF_down;
-                              
+
                           }
-                  
+
                       }
-      
+
                       double triggerSF=1.,triggerSF_up=1.,triggerSF_down=1.;
                       if(!IsDATA){
                           if(p.triggerSF.size()==1){
                               triggerSF*=LeptonTrigger_SF(p.triggerSF[0],p.leps,0);
                               triggerSF_up*=LeptonTrigger_SF(p.triggerSF[0],p.leps,1);
                               triggerSF_down*=LeptonTrigger_SF(p.triggerSF[0],p.leps,-1);
-                              
+
                           }else if(p.triggerSF.size()==2){
                               triggerSF*=DileptonTrigger_SF(p.triggerSF[0],p.triggerSF[1],p.leps,0);
                               triggerSF_up*=DileptonTrigger_SF(p.triggerSF[0],p.triggerSF[1],p.leps,1);
                               triggerSF_down*=DileptonTrigger_SF(p.triggerSF[0],p.triggerSF[1],p.leps,-1);
-                              
+
                           }
-                          
+
                       }
                       if(p.weightbit&NominalWeight){
                           FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"RECO",eventweight*RECOSF);
@@ -349,7 +349,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"ISO",eventweight*RECOSF*IDSF*ISOSF);
                           FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"trigger",eventweight*RECOSF*IDSF*ISOSF*triggerSF);
                       }
-    
+
                       ///////////////////////map_weight//////////////////
                       map<TString,double> map_weight;
                       map<TString,double> map_gen_weight;
@@ -358,7 +358,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_weight[""]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_gen_weight[""]=lumiweight*PUweight*zptweight;
                           map_reco_weight[""]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
-                          
+
                       }
                       if(p.weightbit&SystematicWeight){
                           // only for the nominal parameter selection
@@ -369,7 +369,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_reco_weight["_PUweight_up"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_gen_weight["_PUweight_down"]=lumiweight*PUweight_down*zptweight;
                           map_reco_weight["_PUweight_down"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
-              
+
                           map_weight["_noprefireweight"]=lumiweight*PUweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_prefireweight_up"]=lumiweight*PUweight*prefireweight_up*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_prefireweight_down"]=lumiweight*PUweight*prefireweight_down*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
@@ -377,11 +377,11 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_reco_weight["_prefireweight_up"]=prefireweight_up*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_gen_weight["_prefireweight_down"]=lumiweight*PUweight*zptweight;
                           map_reco_weight["_prefireweight_down"]=prefireweight_down*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
-                          
+
                           map_weight["_nozptweight"]=lumiweight*PUweight*prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_noz0weight"]=lumiweight*PUweight*prefireweight*zptweight*RECOSF*IDSF*ISOSF*triggerSF;
                           map_weight["_noefficiencySF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight;
-              
+
                           map_weight["_noRECOSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*IDSF*ISOSF*triggerSF;
                           map_weight["_RECOSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF_up*IDSF*ISOSF*triggerSF;
                           map_weight["_RECOSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF_down*IDSF*ISOSF*triggerSF;
@@ -389,7 +389,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_reco_weight["_RECOSF_up"]=prefireweight*z0weight*RECOSF_up*IDSF*ISOSF*triggerSF;
                           map_gen_weight["_RECOSF_down"]=lumiweight*PUweight*zptweight;
                           map_reco_weight["_RECOSF_down"]=prefireweight*z0weight*RECOSF_down*IDSF*ISOSF*triggerSF;
-              
+
                           map_weight["_noIDSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*ISOSF*triggerSF;
                           map_weight["_IDSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF_up*ISOSF*triggerSF;
                           map_weight["_IDSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF_down*ISOSF*triggerSF;
@@ -397,7 +397,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_reco_weight["_IDSF_up"]=prefireweight*z0weight*RECOSF*IDSF_up*ISOSF*triggerSF;
                           map_gen_weight["_IDSF_down"]=lumiweight*PUweight*zptweight;
                           map_reco_weight["_IDSF_down"]=prefireweight*z0weight*RECOSF*IDSF_down*ISOSF*triggerSF;
-              
+
                           map_weight["_noISOSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*triggerSF;
                           map_weight["_ISOSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF_up*triggerSF;
                           map_weight["_ISOSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF_down*triggerSF;
@@ -405,7 +405,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_reco_weight["_ISOSF_up"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF_up*triggerSF;
                           map_gen_weight["_ISOSF_down"]=lumiweight*PUweight*zptweight;
                           map_reco_weight["_ISOSF_down"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF_down*triggerSF;
-              
+
                           map_weight["_notriggerSF"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF;
                           map_weight["_triggerSF_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_up;
                           map_weight["_triggerSF_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_down;
@@ -413,64 +413,75 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                           map_reco_weight["_triggerSF_up"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_up;
                           map_gen_weight["_triggerSF_down"]=lumiweight*PUweight*zptweight;
                           map_reco_weight["_triggerSF_down"]=prefireweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF_down;
-                          
+
                       }
                       if(p.weightbit&PDFWeight){
                           for(unsigned int i=0;i<PDFWeights_Scale->size();i++){
                               map_weight[Form("_scalevariation%d",i)]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF*PDFWeights_Scale->at(i);
-                              
+
                           }
                           for(unsigned int i=0;i<PDFWeights_Error->size();i++){
                               map_weight[Form("_pdf%d",i)]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF*PDFWeights_Error->at(i);
-                              
+
                           }
                           if(PDFWeights_AlphaS->size()==2){
                               map_weight["_alphaS_up"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF*PDFWeights_AlphaS->at(0);
                               map_weight["_alphaS_down"]=lumiweight*PUweight*prefireweight*zptweight*z0weight*RECOSF*IDSF*ISOSF*triggerSF*PDFWeights_AlphaS->at(1);
                           }
-                          
                       }
-                  
+
                       if ((*p.leps.at(0)+*p.leps.at(1)).Pt()<p.dilep_pt_cut){ // dilepton pt cut, (100 GeV default)
                           if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix, "dipt cut", eventweight*RECOSF*IDSF*ISOSF*triggerSF);
-                          
-                          fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, *tunfold_parameter, TUnfold_Bin::smeared_bin);
-                         
+
+
+                          // only for DY sample
                           if (IsDYSample && prefix==""){ // prefix "" means non tautau event
-                              // response matrix
-                            
+
                               const vector<Gen> gens=GetGens();
                               Gen gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, gen_isr_l0_bare, gen_isr_l1_bare;
                               vector<const Gen*> added_photons;
                               int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
-                              fill_unfold_hists(channelname, prefix, suffix, (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight, *tunfold_parameter, TUnfold_Bin::truth_bin);
-                              fill_unfold_response_matrixs(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                                map_reco_weight, map_gen_weight, *tunfold_parameter);
-                          }
-                          
-                      
-                      // dilepton pt cut
-                      /*
-                       variable bin, pt cut not needed
-                       */
 
-                      ///////////////////////fill hists///////////////////////
-                      if(HasFlag("TOY")){
-                          //FillHistsToy(channelname,prefix,suffix,(Particle*)p.leps[0],(Particle*)p.leps[1],map_weight);
-                      }
-                      else{
-                          fill_ISR_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight);
-                          if(IsDYSample&&prefix==""&&IsNominalRun){
-                              vector<Gen> gens=GetGens();
-                              Gen truth_l0=GetGenMatchedLepton(*p.leps[0],gens);
-                              Gen truth_l1=GetGenMatchedLepton(*p.leps[1],gens);
-                              if(!truth_l0.IsEmpty()&&!truth_l1.IsEmpty()){
-                                  //FillHists(channelname,"truth_",suffix,(Particle*)&truth_l0,(Particle*)&truth_l1,map_weight);
+                              if (pass_lepton_kinematic_selections(channelname, &gen_isr_l0, &gen_isr_l1, p)){ 
+
+                                
+                                  // 2D binning
+                                  fill_unfold_hists(channelname, prefix, suffix, (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight, *tunfold_parameter, TUnfold_Bin::truth_bin);
+                                  fill_unfold_response_matrixs(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                                    map_reco_weight, map_gen_weight, *tunfold_parameter);
+                                  fill_dipt_resol_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1);
+
+                                  // 1D binning mass dependent response matrix
+                                  fill_mass_dependent_unfold_resps(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_reco_weight, map_gen_weight); 
+
                               }
-                              //else cout<<"no matching"<<endl;
+                              // fake histogram
+                              fill_mass_dependent_unfold_fake_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight, p);
+                          } // DY sample
+
+                          ///////////////////////fill hists///////////////////////
+                          if(HasFlag("TOY")){
+                              //FillHistsToy(channelname,prefix,suffix,(Particle*)p.leps[0],(Particle*)p.leps[1],map_weight);
                           }
-                      }
-                      
+                          else{
+
+                              fill_mass_dependent_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight);
+
+                              // unfolding input
+                              fill_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight, *tunfold_parameter, TUnfold_Bin::smeared_bin);
+                              fill_mass_dependent_unfold_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight);
+
+                              if(IsDYSample&&prefix==""&&IsNominalRun){
+                                  vector<Gen> gens=GetGens();
+                                  Gen truth_l0=GetGenMatchedLepton(*p.leps[0],gens);
+                                  Gen truth_l1=GetGenMatchedLepton(*p.leps[1],gens);
+                                  if(!truth_l0.IsEmpty()&&!truth_l1.IsEmpty()){
+                                      //FillHists(channelname,"truth_",suffix,(Particle*)&truth_l0,(Particle*)&truth_l1,map_weight);
+                                  }
+                                  //else cout<<"no matching"<<endl;
+                              }
+                          }
+
                   }// dilepton pt cut
               } // OS
           } // lepton pt cut
@@ -478,33 +489,228 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
   } // map_parameters
 }
 
-void ISRAnalyzer::fill_ISR_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> map_weight){
+bool ISRAnalyzer::pass_lepton_kinematic_selections(TString channelname, Particle* l0, Particle* l1, const ISRParameter& p){
+   
+    bool passed = false;
+    if (((*l0).Pt()>p.lep0ptcut&&(*l1).Pt()>p.lep1ptcut) || ((*l0).Pt()>p.lep1ptcut&&(*l1).Pt()>p.lep0ptcut)) {
     
-    // as first try, get only essential histogram.
+        double eta_cut = 2.5;
+        if (channelname.Contains(TRegexp("mm20[0-9][0-9]"))) eta_cut = 2.4;
+    
+        if (fabs((*l0).Eta())<eta_cut&&fabs((*l1).Eta())<eta_cut) {
+            if (((*l0)+(*l1)).Pt()<p.dilep_pt_cut) {
+                passed = true;
+            }
+        }
+    }
+
+    return passed;
+}
+
+void ISRAnalyzer::fill_mass_dependent_unfold_fake_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double>& map_weights, const ISRParameter& p){
+
     TLorentzVector dilepton = (*l0) + (*l1);
     double dimass = dilepton.M();
     double dipt = dilepton.Pt();
-   
+
+    TLorentzVector dilepton_truth=(*truth_l0)+(*truth_l1);
+    double dimass_truth = dilepton_truth.M();
+    double dipt_truth = dilepton_truth.Pt();
+
     // mass dependent histograms
     for (int i = 0; i < nmass_window; i++){
         double low_mass_edge = mass_window[i];
         double high_mass_edge = mass_window[i+1];
-        
+
         double* mass_bin_pointer = (double*)mass_bin_fine_muon;
         int n_mass_bin = n_mass_bin_fine_muon-1;
-        
+
         if (i == 0 && channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
             low_mass_edge = 50;
             mass_bin_pointer = (double*)mass_bin_fine_muon;
             n_mass_bin = n_mass_bin_fine_electron-1;
         }
-        
+
         if (dimass > low_mass_edge && dimass < high_mass_edge){
-            
+
             string m = "m";
             string to = "to";
             string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
-            
+
+            bool passed_gen_selection = false;
+            if (pass_lepton_kinematic_selections(channelname, truth_l0, truth_l1, p)){
+                if (dimass_truth > low_mass_edge && dimass_truth < high_mass_edge){
+                    passed_gen_selection = true;
+                }
+            }
+            if (!passed_gen_selection) fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_fake", l0, l1, map_weights, *tunfold_parameter_test, TUnfold_Bin::smeared_bin);   
+
+        }
+    }// loop mass window
+}
+
+void ISRAnalyzer::fill_dipt_resol_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1)
+{
+    TLorentzVector dilepton_smeared=(*l0)+(*l1);
+    double dimass_smeared=dilepton_smeared.M();
+    double dipt_smeared=dilepton_smeared.Pt();
+
+    TLorentzVector dilepton_truth=(*truth_l0)+(*truth_l1);
+    double dimass_truth = dilepton_truth.M();
+    double dipt_truth = dilepton_truth.Pt();
+
+    for (int i = 0; i < nmass_window; i++){
+        double low_mass_edge = mass_window[i];
+        double high_mass_edge = mass_window[i+1];
+
+        double* mass_bin_pointer = (double*)mass_bin_fine_muon;
+        int n_mass_bin = n_mass_bin_fine_muon-1;
+
+        if (i == 0 && channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
+            low_mass_edge = 50;
+            mass_bin_pointer = (double*)mass_bin_fine_muon;
+            n_mass_bin = n_mass_bin_fine_electron-1;
+        }
+
+        if (dimass_smeared > low_mass_edge && dimass_smeared < high_mass_edge){
+
+            string m = "m";
+            string to = "to";
+            string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
+
+            if (i > 3) // last mass bin
+                FillHist(channelname+"/"+pre+"dilep_pt_resol_"+ mass_window_postfix +suf, dipt_smeared-dipt_truth, lumiweight, 50, -2, 2);
+            else
+                FillHist(channelname+"/"+pre+"dilep_pt_resol_"+ mass_window_postfix +suf, dipt_smeared-dipt_truth, lumiweight, 400, -2, 2);
+            FillHist(channelname+"/"+pre+"dilep_mass_resol_"+ mass_window_postfix +suf, dimass_smeared-dimass_truth, lumiweight, 400, -2, 2);
+        }
+
+        if (dimass_truth > low_mass_edge && dimass_truth < high_mass_edge){
+
+            string m = "truth_m";
+            string to = "to";
+            string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
+
+            // loop for dipt resolution as a function of dipt
+            for (int i = 0; i < n_pt_bin_coarse; i++){
+
+                if (dipt_truth > pt_bin_coarse[i] && dipt_truth < pt_bin_coarse[i+1]){
+                    string pt = "pt";
+                    string to = "to";
+                    string pt_window_postfix = pt + Form("%d", (int)pt_bin_coarse[i]) + to + Form("%d", (int)pt_bin_coarse[i+1]);
+
+                    if (i > 3)
+                        FillHist(channelname+"/"+pre+"dilep_pt_resol_"+ mass_window_postfix + "_" + pt_window_postfix + suf, dipt_smeared-dipt_truth, lumiweight, 50, -2, 2);
+
+                    else{
+                        if (i > 11) // above 40 GeV
+                            FillHist(channelname+"/"+pre+"dilep_pt_resol_"+ mass_window_postfix + "_" + pt_window_postfix + suf, dipt_smeared-dipt_truth, lumiweight, 100, -2, 2);
+                        else
+                            FillHist(channelname+"/"+pre+"dilep_pt_resol_"+ mass_window_postfix + "_" + pt_window_postfix + suf, dipt_smeared-dipt_truth, lumiweight, 400, -2, 2);
+                    }
+                }
+            }
+        }
+    }// loop for mass window
+}
+
+void ISRAnalyzer::fill_mass_dependent_unfold_resps(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1,
+                                    map<TString,double>& reco_weights, map<TString,double>& gen_weights){
+
+    TLorentzVector dilepton_smeared=(*l0)+(*l1);
+    double dimass_smeared=dilepton_smeared.M();
+
+    TLorentzVector dilepton_truth=(*truth_l0)+(*truth_l1);
+    double dimass_truth = dilepton_truth.M();
+
+    for (int i = 0; i < nmass_window; i++){
+        double low_mass_edge = mass_window[i];
+        double high_mass_edge = mass_window[i+1];
+
+        double* mass_bin_pointer = (double*)mass_bin_fine_muon;
+        int n_mass_bin = n_mass_bin_fine_muon-1;
+
+        if (i == 0 && channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
+            low_mass_edge = 50;
+            mass_bin_pointer = (double*)mass_bin_fine_muon;
+            n_mass_bin = n_mass_bin_fine_electron-1;
+        }
+
+        if (dimass_smeared > low_mass_edge && dimass_smeared < high_mass_edge && dimass_truth > low_mass_edge && dimass_truth < high_mass_edge){
+
+            string m = "m";
+            string to = "to";
+            string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
+
+            fill_unfold_response_matrixs(channelname, pre, suf+"_"+mass_window_postfix, (Particle*)l0, (Particle*)l1, (Particle*)truth_l0, (Particle*)truth_l1, 
+                    reco_weights, gen_weights, *tunfold_parameter_test);
+
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix, (Particle*)truth_l0, (Particle*)truth_l1, gen_weights, *tunfold_parameter_test, TUnfold_Bin::truth_bin);
+
+        }
+    }// loop mass window
+}
+
+void ISRAnalyzer::fill_mass_dependent_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> map_weight, TUnfold_Bin bin_type){
+
+    // as first try, get only essential histogram.
+    TLorentzVector dilepton = (*l0) + (*l1);
+    double dimass = dilepton.M();
+    double dipt = dilepton.Pt();
+
+    // mass dependent histograms
+    for (int i = 0; i < nmass_window; i++){
+        double low_mass_edge = mass_window[i];
+        double high_mass_edge = mass_window[i+1];
+
+        double* mass_bin_pointer = (double*)mass_bin_fine_muon;
+        int n_mass_bin = n_mass_bin_fine_muon-1;
+
+        if (i == 0 && channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
+            low_mass_edge = 50;
+            mass_bin_pointer = (double*)mass_bin_fine_muon;
+            n_mass_bin = n_mass_bin_fine_electron-1;
+        }
+
+        if (dimass > low_mass_edge && dimass < high_mass_edge){
+
+            string m = "m";
+            string to = "to";
+            string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
+
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix, l0, l1, map_weight, *tunfold_parameter_test, bin_type);
+
+        }
+    }// loop mass window
+}
+
+void ISRAnalyzer::fill_mass_dependent_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> map_weight){
+
+    // as first try, get only essential histogram.
+    TLorentzVector dilepton = (*l0) + (*l1);
+    double dimass = dilepton.M();
+    double dipt = dilepton.Pt();
+
+    // mass dependent histograms
+    for (int i = 0; i < nmass_window; i++){
+        double low_mass_edge = mass_window[i];
+        double high_mass_edge = mass_window[i+1];
+
+        double* mass_bin_pointer = (double*)mass_bin_fine_muon;
+        int n_mass_bin = n_mass_bin_fine_muon-1;
+
+        if (i == 0 && channelname.Contains(TRegexp("ee20[0-9][0-9]"))){
+            low_mass_edge = 50;
+            mass_bin_pointer = (double*)mass_bin_fine_muon;
+            n_mass_bin = n_mass_bin_fine_electron-1;
+        }
+
+        if (dimass > low_mass_edge && dimass < high_mass_edge){
+
+            string m = "m";
+            string to = "to";
+            string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
+
             FillHist(channelname+"/"+pre+"dilep_pt_"+ mass_window_postfix +suf, dipt, map_weight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
             FillHist(channelname+"/"+pre+"dilep_mass_"+ mass_window_postfix +suf, dimass, map_weight, n_mass_bin, mass_bin_pointer);
         }
@@ -517,7 +723,7 @@ void ISRAnalyzer::executeEventFromParameter(AnalyzerParameter param){
 
 int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& lepton0, Gen& lepton1, int mode, vector<const Gen*>& added_photons){
 
-    int DY_index = -1; 
+    int DY_index = -1;
 
     if(!IsDYSample){
       cout <<"[ISRAnalyzer::get_DY_gen_particles] this is for DY event"<<endl;
@@ -634,7 +840,7 @@ int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen
         }// status 1
     }// gen loop
 
-  
+
     int DY_index = get_DY_bare_lepton_pair(gens, leptons, lepton0, lepton1);
 
     return DY_index;
@@ -643,18 +849,18 @@ int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen
 //
 int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vector<const Gen*>& leptons, vector<const Gen*>& photons, Gen& lepton0, Gen& lepton1,
                                             const DressedMode mode, vector<const Gen*>& added_photons, const double dR){
-    
+
     int DY_index = get_DY_bare_lepton_pair(gens, leptons, lepton0, lepton1);
     if(DY_index == -1) // DY leptons not selected
         return DY_index;
-    
+
     vector<int> DY_history;
     save_gen_history(gens, lepton0, DY_history, DY_index);
     save_gen_history(gens, lepton1, DY_history, DY_index);
-    
+
     Gen lepton0_temp = lepton0;
     Gen lepton1_temp = lepton1;
-    
+
     // loop leptons
     int nlepton = leptons.size();
     for(int i = 0;i < nlepton;i++){
@@ -668,7 +874,7 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
 
         }
     }
-    
+
     for(const auto photon : photons){
 
         if(mode == DressedMode::MotherMatch || mode == DressedMode::MotherDRMatch){
@@ -677,13 +883,13 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
             if(it == DY_history.end()){
                 continue;
             }
-            
+
             // photon's mother is not lepton
             if(abs(gens.at(*it).PID()) != abs(lepton0_temp.PID())){
                 continue;
             }
         }
-        
+
         if(mode == DressedMode::DRMatch || mode == DressedMode::MotherDRMatch){
             if(lepton0_temp.DeltaR(*photon) < lepton1_temp.DeltaR(*photon)){
                 if(lepton0_temp.DeltaR(*photon) > dR) continue;
@@ -694,7 +900,7 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
         }
 
         added_photons.push_back(photon);
-        
+
         // add gamma to the cloest lepton
         if(lepton0_temp.DeltaR(*photon) < lepton1_temp.DeltaR(*photon)){
             lepton0 +=  *photon;
@@ -702,9 +908,9 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
         else{
             lepton1 +=  *photon;
         }
-        
+
     }// loops photon
-    
+
     return DY_index;
 }
 
@@ -758,11 +964,11 @@ int ISRAnalyzer::get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<c
                 DY_index = history_intersection.at(0); // set DY index when leptons selected
                 if(verbose)
                     cout << "set lepton!" << endl;
-                
+
                 if(leptons[i]->Pt()>leptons[j]->Pt()){
                     lepton0 = *leptons[i];
                     lepton1 = *leptons[j];
-                    
+
                     lepton0.SetIndexPIDStatus(leptons[i]->Index(), leptons[i]->PID(), leptons[i]->Status());
                     lepton1.SetIndexPIDStatus(leptons[j]->Index(), leptons[j]->PID(), leptons[j]->Status());
                 }
@@ -776,7 +982,7 @@ int ISRAnalyzer::get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<c
 
         }// leptons(j) loop
     }// leptons(i) loop
-    
+
     return DY_index;
 }
 
@@ -787,7 +993,7 @@ void ISRAnalyzer::save_gen_history(const vector<Gen>& gens, const Gen& lepton, v
     int mother_index  = lepton.MotherIndex();
     index_vector.push_back(index);
 
-    while(mother_index > index_limit){ // 
+    while(mother_index > index_limit){ //
 
         index_vector.push_back(mother_index);
         index = mother_index;
@@ -824,12 +1030,14 @@ void ISRAnalyzer::print_gen_particles(const vector<Gen>& gens){
 
 
 ISRAnalyzer::ISRAnalyzer(){
-  
+
     job_number=-1;
-    
+
     tunfold_parameter = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine, sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
         sizeof(mass_window)/sizeof(double)-1, mass_window, sizeof(mass_window)/sizeof(double)-1, mass_window, false, true, true, true, "dipt", "dimass"};
 
+    tunfold_parameter_test = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine, sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
+        false, true, "dipt"};
 }
 
 ISRAnalyzer::~ISRAnalyzer(){

@@ -55,12 +55,46 @@ class ISRAnalyzer : public ISRUnfold  {
 
 public:
 
+    class ISRParameter : public Parameter{
+        
+    public:
+        double dilep_pt_cut = 100;
+        
+        inline ISRParameter Clone(vector<Lepton*> leps_,int weightbit_=-1){
+            ISRParameter out=*this;
+            out.leps=leps_;
+            if(weightbit_>=0) out.weightbit=weightbit_;
+            return out;
+        }
+
+        ISRParameter(){
+            Parameter();
+        }
+        // electron
+        ISRParameter(TString elID, vector<TString> Trig, double l0ptcut=-1, double l1ptcut=-1, double diptcut = 100, vector<Lepton*> leps_={}){
+            Parameter(elID, Trig, l0ptcut, l1ptcut, leps_);
+            dilep_pt_cut = diptcut;
+        }
+        // muon
+        ISRParameter(TString muID, TString muISO, vector<TString> Trig, double l0ptcut=-1, double l1ptcut=-1, double diptcut = 100, vector<Lepton*> leps_={}){
+            Parameter(muID, muISO, Trig, l0ptcut, l1ptcut, leps);
+            dilep_pt_cut = diptcut;
+        }
+    };
+
     void initializeAnalyzer();
     void executeEventFromParameter(AnalyzerParameter param);
     void executeEventWithChannelName(TString channelname);
     void executeEvent();
 
-    void fill_ISR_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> map_weight);
+    bool pass_lepton_kinematic_selections(TString channelname, Particle* l0, Particle* l1, const ISRParameter& p);
+
+    void fill_mass_dependent_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> map_weight);
+    void fill_dipt_resol_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1);
+    void fill_mass_dependent_unfold_fake_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double>& map_weights, const ISRParameter& p);
+
+    void fill_mass_dependent_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> map_weight, TUnfold_Bin bin_type = TUnfold_Bin::smeared_bin);
+    void fill_mass_dependent_unfold_resps(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1,map<TString,double>& reco_weights, map<TString,double>& gen_weights);
 
     //
     int get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& letpon0, Gen& lepton1, int mode);
@@ -78,30 +112,6 @@ public:
     ISRAnalyzer();
     ~ISRAnalyzer();
     
-    class ISRParameter : public Parameter{
-        
-    public:
-        double dilep_pt_cut = 100;
-        
-        inline ISRParameter Clone(vector<Lepton*> leps_,int weightbit_=-1){
-            ISRParameter out=*this;
-            out.leps=leps_;
-            if(weightbit_>=0) out.weightbit=weightbit_;
-            return out;
-        }
-
-        ISRParameter(){
-            Parameter();
-        }
-        ISRParameter(TString elID, vector<TString> Trig, double l0ptcut=-1, double l1ptcut=-1, double diptcut = 100, vector<Lepton*> leps_={}){
-            Parameter(elID, Trig, l0ptcut, l1ptcut, leps_);
-            dilep_pt_cut = diptcut;
-        }
-        ISRParameter(TString muID, TString muISO, vector<TString> Trig, double l0ptcut=-1, double l1ptcut=-1, double diptcut = 100, vector<Lepton*> leps_={}){
-            Parameter(muID, muISO, Trig, l0ptcut, l1ptcut, leps);
-            dilep_pt_cut = diptcut;
-        }
-    };
     
 private:
     bool IsNominalRun=true;
@@ -109,6 +119,7 @@ private:
     int job_number;
     
     TUnfoldParameter* tunfold_parameter;
+    TUnfoldParameter* tunfold_parameter_test;
 };
 
 
