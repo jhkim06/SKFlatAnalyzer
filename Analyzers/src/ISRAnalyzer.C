@@ -291,7 +291,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
 
               if(p.leps.at(0)->Charge() * p.leps.at(1)->Charge() < 0){
                   if(p.weightbit & NominalWeight) FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"OS",eventweight);
-
+                  
                       /////////////////efficiency scale factors///////////////////
                       double IDSF=1.,IDSF_up=1.,IDSF_down=1.;
                       double ISOSF=1.,ISOSF_up=1.,ISOSF_down=1.;
@@ -444,7 +444,6 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
 
                               if (pass_lepton_kinematic_selections(channelname, &gen_isr_l0, &gen_isr_l1, p)){ 
 
-                                
                                   // 2D binning
                                   fill_unfold_hists(channelname, prefix, suffix, (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight, *tunfold_parameter, TUnfold_Bin::truth_bin);
                                   fill_unfold_response_matrixs(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
@@ -482,7 +481,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                               }
                           }
 
-                  }// dilepton pt cut
+                  } // dilepton pt cut
               } // OS
           } // lepton pt cut
       } // two lepton
@@ -503,7 +502,6 @@ bool ISRAnalyzer::pass_lepton_kinematic_selections(TString channelname, Particle
             }
         }
     }
-
     return passed;
 }
 
