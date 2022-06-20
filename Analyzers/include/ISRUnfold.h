@@ -79,9 +79,12 @@ public:
     void fill_unfold_hist(TString hname, Double_t value, Double_t weight, TUnfoldBinning* bin_pointer = nullptr, bool is_2D = true);
     void fill_unfold_response_matrix(TString hname, Double_t value_smeared, Double_t value_truth, map<TString,double> reco_weights, map<TString,double> gen_weights, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr, bool is_2D = true);
     void fill_unfold_response_matrix(TString hname, Double_t value_smeared, Double_t value_truth, Double_t reco_weight, Double_t gen_weight, TUnfoldBinning* bin_pointer_smeared=nullptr, TUnfoldBinning* bin_pointer_truth=nullptr, bool is_2D = true);
+    bool is_same_bin(TString channelname, TString pre, Double_t variable1, Double_t variabl2, const TUnfoldParameter& par, const TUnfold_Bin mode);
     
     virtual void WriteHist();
-   
+
+    // TODO
+    // void set_tunfold_binnings();
     
     ISRUnfold();
     ~ISRUnfold();

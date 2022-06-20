@@ -6,6 +6,39 @@ ISRUnfold::ISRUnfold(){
 ISRUnfold::~ISRUnfold(){
 }
 
+
+
+bool ISRUnfold::is_same_bin(TString channelname, TString pre, Double_t variable1, Double_t variable2, const TUnfoldParameter& par, const TUnfold_Bin mode)
+{
+
+    TUnfoldBinning* temp_bin = new TUnfoldBinning("temp_bin");
+    temp_bin->AddAxis(par.first_axis_name, par.n_first_axis_truth, par.first_axis_truth, par.use_first_axis_uf, par.use_first_axis_of);
+    
+    TH1D* temp_hist = (TH1D*) temp_bin->CreateHistogram("temp_hist", true);
+
+    // TODO consider 2D case later
+    int bin_index1 = temp_hist->FindBin(variable1);
+    int bin_index2 = temp_hist->FindBin(variable2);
+
+
+    if (bin_index1==bin_index2 && bin_index1 > 0 && bin_index1 <= temp_hist->GetNbinsX())
+    {
+
+        delete temp_bin;
+        delete temp_hist;
+
+        return true;
+    }
+    else{
+        delete temp_bin;
+        delete temp_hist;
+
+        return false;
+    }
+
+}
+
+
 void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode){
 
     TLorentzVector dilepton = (*l0) + (*l1);
@@ -36,7 +69,6 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
         smeared_bin->AddAxis(par.second_axis_name, par.n_second_axis_smeared, par.second_axis_smeared, par.use_second_axis_uf, par.use_second_axis_of);
         }
         
-        
         map_tunfoldbins[full_bin_name] = make_tuple(smeared_bin, truth_bin);
 
         if (mode == TUnfold_Bin::smeared_bin) bin_pointer = get<0>(map_tunfoldbins[full_bin_name]);
@@ -53,7 +85,6 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     }
     else{
         // 1D binning
-
         const string pt_str = "dipt";
         const string mass_str = "dimass";
 
@@ -67,7 +98,6 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
             cout <<"ISRUnfold::fill_unfold_hists check bin definition." << endl;
             exit(EXIT_FAILURE);
         }
-
     }
     
     string bin_prefix;
