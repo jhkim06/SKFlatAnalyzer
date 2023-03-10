@@ -6,8 +6,6 @@ ISRUnfold::ISRUnfold(){
 ISRUnfold::~ISRUnfold(){
 }
 
-
-
 bool ISRUnfold::is_same_bin(TString channelname, TString pre, Double_t variable1, Double_t variable2, const TUnfoldParameter& par, const TUnfold_Bin mode)
 {
 
@@ -16,7 +14,6 @@ bool ISRUnfold::is_same_bin(TString channelname, TString pre, Double_t variable1
     
     TH1D* temp_hist = (TH1D*) temp_bin->CreateHistogram("temp_hist", true);
 
-    // TODO consider 2D case later
     int bin_index1 = temp_hist->FindBin(variable1);
     int bin_index2 = temp_hist->FindBin(variable2);
 
@@ -37,7 +34,6 @@ bool ISRUnfold::is_same_bin(TString channelname, TString pre, Double_t variable1
     }
 
 }
-
 
 void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode){
 

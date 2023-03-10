@@ -29,7 +29,7 @@ void ISRAnalyzer::executeEvent(){
     //cout << "current entry number: " << fChain->GetReadEntry() << endl;
 
     event=GetEvent();
-    GetEventWeights(); // need to uncerstand clearly
+    GetEventWeights(); // need to understand clearly
 
     if(IsDYSample){
 
@@ -48,10 +48,8 @@ void ISRAnalyzer::executeEvent(){
         int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0_bare, gen_isr_l1_bare, PostFSR);
         DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
 
-
         //if(DY_index == -1) // DY leptons not properly selected
         //    return;
-
         /*
         cout << "hs dimass: " << (gen_l0_bare+gen_l1_bare).M() << " jh dimass: " << (gen_isr_l0_bare+gen_isr_l1_bare).M() << " DY index: " << DY_index << endl;
         cout << "hs index 0: " << gen_l0_bare.Index() << " hs index 1: " << gen_l1_bare.Index() << endl;
@@ -69,6 +67,63 @@ void ISRAnalyzer::executeEvent(){
             FillHist("muon_dilepton_mass_postFSR", (gen_isr_l0_bare + gen_isr_l1_bare).M(), lumiweight, 3000, 0, 3000);
             FillHist("muon_dilepton_mass_preFSR_HS", (gen_l0 + gen_l1).M(), lumiweight, 3000, 0, 3000);
             FillHist("muon_dilepton_mass_postFSR_HS", (gen_l0_bare + gen_l1_bare).M(), lumiweight, 3000, 0, 3000);
+
+
+            double dimass = (gen_l0 + gen_l1).M();
+            double dipt = (gen_l0 + gen_l1).Pt();
+
+            if (dimass > 60. && dimass < 76. && dipt < 100.){
+                // 1 2 4 5 10 20 50
+                FillHist("muon_dimass0_dipt_1GeV_binning", dipt, lumiweight, 100, 0, 100);
+                FillHist("muon_dimass0_dipt_2GeV_binning", dipt, lumiweight, 50, 0, 100);
+                FillHist("muon_dimass0_dipt_4GeV_binning", dipt, lumiweight, 25, 0, 100);
+                FillHist("muon_dimass0_dipt_5GeV_binning", dipt, lumiweight, 20, 0, 100);
+                FillHist("muon_dimass0_dipt_10GeV_binning", dipt, lumiweight, 10, 0, 100);
+                FillHist("muon_dimass0_dipt_20GeV_binning", dipt, lumiweight, 5, 0, 100);
+                FillHist("muon_dimass0_dipt_50GeV_binning", dipt, lumiweight, 2, 0, 100);
+                FillHist("muon_dimass0_dipt_variable_bin1", dipt, lumiweight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
+                FillHist("muon_dimass0_dipt_variable_bin2", dipt, lumiweight, sizeof(pt_bin_coarse_v3)/sizeof(double)-1, (double*)pt_bin_coarse_v3);
+            }
+
+            if (dimass > 76. && dimass < 101. && dipt < 100.){
+                // 1 2 4 5 10 20 50
+                FillHist("muon_dimass1_dipt_1GeV_binning", dipt, lumiweight, 100, 0, 100);
+                FillHist("muon_dimass1_dipt_2GeV_binning", dipt, lumiweight, 50, 0, 100);
+                FillHist("muon_dimass1_dipt_4GeV_binning", dipt, lumiweight, 25, 0, 100);
+                FillHist("muon_dimass1_dipt_5GeV_binning", dipt, lumiweight, 20, 0, 100);
+                FillHist("muon_dimass1_dipt_10GeV_binning", dipt, lumiweight, 10, 0, 100);
+                FillHist("muon_dimass1_dipt_20GeV_binning", dipt, lumiweight, 5, 0, 100);
+                FillHist("muon_dimass1_dipt_50GeV_binning", dipt, lumiweight, 2, 0, 100);
+                FillHist("muon_dimass1_dipt_variable_bin1", dipt, lumiweight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
+                FillHist("muon_dimass1_dipt_variable_bin2", dipt, lumiweight, sizeof(pt_bin_coarse_v3)/sizeof(double)-1, (double*)pt_bin_coarse_v3);
+            }
+
+            if (dimass > 101. && dimass < 200. && dipt < 100.){
+                // 1 2 4 5 10 20 50
+                FillHist("muon_dimass2_dipt_1GeV_binning", dipt, lumiweight, 100, 0, 100);
+                FillHist("muon_dimass2_dipt_2GeV_binning", dipt, lumiweight, 50, 0, 100);
+                FillHist("muon_dimass2_dipt_4GeV_binning", dipt, lumiweight, 25, 0, 100);
+                FillHist("muon_dimass2_dipt_5GeV_binning", dipt, lumiweight, 20, 0, 100);
+                FillHist("muon_dimass2_dipt_10GeV_binning", dipt, lumiweight, 10, 0, 100);
+                FillHist("muon_dimass2_dipt_20GeV_binning", dipt, lumiweight, 5, 0, 100);
+                FillHist("muon_dimass2_dipt_50GeV_binning", dipt, lumiweight, 2, 0, 100);
+                FillHist("muon_dimass2_dipt_variable_bin1", dipt, lumiweight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
+                FillHist("muon_dimass2_dipt_variable_bin2", dipt, lumiweight, sizeof(pt_bin_coarse_v3)/sizeof(double)-1, (double*)pt_bin_coarse_v3);
+            }
+
+            if (dimass > 200. && dimass < 1000. && dipt < 100.){
+                // 1 2 4 5 10 20 50
+                FillHist("muon_dimass3_dipt_1GeV_binning", dipt, lumiweight, 100, 0, 100);
+                FillHist("muon_dimass3_dipt_2GeV_binning", dipt, lumiweight, 50, 0, 100);
+                FillHist("muon_dimass3_dipt_4GeV_binning", dipt, lumiweight, 25, 0, 100);
+                FillHist("muon_dimass3_dipt_5GeV_binning", dipt, lumiweight, 20, 0, 100);
+                FillHist("muon_dimass3_dipt_10GeV_binning", dipt, lumiweight, 10, 0, 100);
+                FillHist("muon_dimass3_dipt_20GeV_binning", dipt, lumiweight, 5, 0, 100);
+                FillHist("muon_dimass3_dipt_50GeV_binning", dipt, lumiweight, 2, 0, 100);
+                FillHist("muon_dimass3_dipt_variable_bin1", dipt, lumiweight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
+                FillHist("muon_dimass3_dipt_variable_bin2", dipt, lumiweight, sizeof(pt_bin_coarse_v3)/sizeof(double)-1, (double*)pt_bin_coarse_v3);
+            }
+
             for(auto photon: added_photons){
                 if(gen_l0_bare.DeltaR(*photon) < gen_l1_bare.DeltaR(*photon))
                     FillHist("muon_DR_added_photon", gen_l0_bare.DeltaR(*photon), lumiweight, 100, 0, 1.);
@@ -90,7 +145,8 @@ void ISRAnalyzer::executeEvent(){
             }
         }
 
-      /*
+        /*
+        *
         if (abs((gen_l0_bare+gen_l1_bare).M()-(gen_isr_l0_bare+gen_isr_l1_bare).M()) > 1e-5){
 
             //get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR);
@@ -132,6 +188,8 @@ void ISRAnalyzer::executeEvent(){
         if(mcCorr->IsBTagged_2a(jtp,jet))
             n_bjet++;
 
+
+      // btag SF?
       if(HasFlag("nobjet")&&n_bjet) return;
       if(IsNominalRun) FillCutflow(prefix+tauprefix+"cutflow","BJetCut",lumiweight*PUweight*prefireweight*zptweight*z0weight);
     }
@@ -187,13 +245,14 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
 
   map<TString, vector<Muon>> map_muons;
   map<TString, vector<Electron>> map_electrons;
-  map<TString, ISRParameter> map_parameter; // Parameter(bas) defined in SMPAnalyzer, ISRParameter(inherited)
+  map<TString, ISRParameter> map_parameter; // Parameter(base) defined in SMPAnalyzer, ISRParameter(inherited)
 
   if(channelname.Contains(TRegexp("mm20[0-9][0-9]"))){
 
-    ISRParameter p("IDISO_SF_MediumID_trkIsoLoose_Q","",{"Mu17Leg1_MediumID_trkIsoLoose_Q","Mu8Leg2_MediumID_trkIsoLoose_Q"}, 20., 10.);
+    ISRParameter p("IDISO_SF_TightID_trkIsoLoose_Q","",{"Mu17Leg1_TightID_trkIsoLoose_Q","Mu8Leg2_TightID_trkIsoLoose_Q"}, 20., 10.);
 
-    map_muons[""]=MuonMomentumCorrection(SMPGetMuons("POGMediumWithLooseTrkIso",0.0,2.4),0,3);
+    //map_muons[""]=MuonMomentumCorrection(SMPGetMuons("POGMediumWithLooseTrkIso",0.0,2.4),0,3);
+    map_muons[""]=MuonMomentumCorrection(SMPGetMuons("POGTightWithLooseTrkIso",0.0,2.4),0,0);
     map_parameter[""]=p.Clone(MakeLeptonPointerVector(map_muons[""]),
                   (IsNominalRun?NominalWeight:0)
                   +(HasFlag("SYS")&&!IsDATA?SystematicWeight:0)
@@ -247,7 +306,7 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
   }else if(channelname.Contains(TRegexp("em20[0-9][0-9]"))){
     ISRParameter p;
     p.electronIDSF="ID_SF_MediumID_Q";
-    p.muonIDSF="IDISO_SF_MediumID_trkIsoLoose_Q";
+    p.muonIDSF="IDISO_SF_TightID_trkIsoLoose_Q";
     p.triggerSF={"",""};
     p.lep0ptcut=25.;
     p.lep1ptcut=15.;
@@ -333,7 +392,6 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                               IDSF*=this_IDSF; IDSF_up*=this_IDSF_up; IDSF_down*=this_IDSF_down;
 
                           }
-
                       }
 
                       double triggerSF=1.,triggerSF_up=1.,triggerSF_down=1.;
@@ -349,7 +407,6 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
                               triggerSF_down*=DileptonTrigger_SF(p.triggerSF[0],p.triggerSF[1],p.leps,-1);
 
                           }
-
                       }
                       if(p.weightbit&NominalWeight){
                           FillCutflow(channelname+"/"+prefix+"cutflow"+suffix,"RECO",eventweight*RECOSF);
@@ -460,13 +517,23 @@ void ISRAnalyzer::executeEventWithChannelName(TString channelname){
 
                                   // 1D binning mass dependent response matrix
                                   fill_unfold_isr_responseM(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_reco_weight, map_gen_weight); 
-
+                                  if (fChain->GetReadEntry()%2==0)
+                                      fill_unfold_isr_responseM(channelname, prefix, suffix+"_even", (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_reco_weight, map_gen_weight); 
+                                  else 
+                                      fill_unfold_isr_responseM(channelname, prefix, suffix+"_odd", (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_reco_weight, map_gen_weight); 
                                   // purity and stability
                                   fill_mass_dependent_stability_purity(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight);
 
                               }
                               // fake histogram
                               fill_unfold_isr_fake_hists(channelname, prefix, suffix, (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight, p);
+                              if (fChain->GetReadEntry()%2==1) {
+                                  fill_unfold_isr_fake_hists(channelname, prefix, suffix+"_odd", (Particle*)p.leps[0], (Particle*)p.leps[1], (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_weight, p);
+                                  fill_mass_dependent_hists(channelname, prefix, suffix+"_odd", (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight);
+
+                                  fill_unfold_isr_hists(channelname, prefix, suffix+"_odd", (Particle*)p.leps[0], (Particle*)p.leps[1], map_weight);
+                              }
+
                           } // DY sample
 
                           ///////////////////////fill hists///////////////////////
@@ -545,6 +612,9 @@ void ISRAnalyzer::fill_unfold_isr_fake_hists(TString channelname, TString pre, T
                 }
             }
             if (!passed_gen_selection) fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_fake", l0, l1, map_weights, *tunfold_parameter_1d_pt, TUnfold_Bin::smeared_bin);   
+            if (!passed_gen_selection) fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v2bin_fake", l0, l1, map_weights, *tunfold_parameter_1d_pt_v2, TUnfold_Bin::smeared_bin);   
+            if (!passed_gen_selection) fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v3bin_fake", l0, l1, map_weights, *tunfold_parameter_1d_pt_v3, TUnfold_Bin::smeared_bin);   
+            if (!passed_gen_selection) fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v4bin_fake", l0, l1, map_weights, *tunfold_parameter_1d_pt_v4, TUnfold_Bin::smeared_bin);   
         }
     }// loop mass window
 
@@ -684,10 +754,24 @@ void ISRAnalyzer::fill_unfold_isr_responseM(TString channelname, TString pre, TS
             string to = "to";
             string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
 
+            // response matrix
             fill_unfold_response_matrixs(channelname, pre, suf+"_"+mass_window_postfix, (Particle*)l0, (Particle*)l1, (Particle*)truth_l0, (Particle*)truth_l1, 
                     reco_weights, gen_weights, *tunfold_parameter_1d_pt);
 
+            fill_unfold_response_matrixs(channelname, pre, suf+"_"+mass_window_postfix+"_v2bin", (Particle*)l0, (Particle*)l1, (Particle*)truth_l0, (Particle*)truth_l1, 
+                    reco_weights, gen_weights, *tunfold_parameter_1d_pt_v2);
+
+            fill_unfold_response_matrixs(channelname, pre, suf+"_"+mass_window_postfix+"_v3bin", (Particle*)l0, (Particle*)l1, (Particle*)truth_l0, (Particle*)truth_l1, 
+                    reco_weights, gen_weights, *tunfold_parameter_1d_pt_v3);
+
+            fill_unfold_response_matrixs(channelname, pre, suf+"_"+mass_window_postfix+"_v4bin", (Particle*)l0, (Particle*)l1, (Particle*)truth_l0, (Particle*)truth_l1, 
+                    reco_weights, gen_weights, *tunfold_parameter_1d_pt_v4);
+
+            // truth distribution
             fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix, (Particle*)truth_l0, (Particle*)truth_l1, gen_weights, *tunfold_parameter_1d_pt, TUnfold_Bin::truth_bin);
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v2bin", (Particle*)truth_l0, (Particle*)truth_l1, gen_weights, *tunfold_parameter_1d_pt_v2, TUnfold_Bin::truth_bin);
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v3bin", (Particle*)truth_l0, (Particle*)truth_l1, gen_weights, *tunfold_parameter_1d_pt_v3, TUnfold_Bin::truth_bin);
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v4bin", (Particle*)truth_l0, (Particle*)truth_l1, gen_weights, *tunfold_parameter_1d_pt_v4, TUnfold_Bin::truth_bin);
         }
     }// loop mass window
 
@@ -725,6 +809,9 @@ void ISRAnalyzer::fill_unfold_isr_hists(TString channelname, TString pre, TStrin
             string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
 
             fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix, l0, l1, map_weight, *tunfold_parameter_1d_pt, bin_type);
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v2bin", l0, l1, map_weight, *tunfold_parameter_1d_pt_v2, bin_type);
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v3bin", l0, l1, map_weight, *tunfold_parameter_1d_pt_v3, bin_type);
+            fill_unfold_hists(channelname, pre, suf+"_"+mass_window_postfix+"_v4bin", l0, l1, map_weight, *tunfold_parameter_1d_pt_v4, bin_type);
         }
     }// loop mass window
 
@@ -763,8 +850,15 @@ void ISRAnalyzer::fill_mass_dependent_hists(TString channelname, TString pre, TS
             string to = "to";
             string mass_window_postfix = m + Form("%d", (int)low_mass_edge) + to + Form("%d", (int)high_mass_edge);
 
-            FillHist(channelname+"/"+pre+"dilep_pt_"+ mass_window_postfix +suf, dipt, map_weight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
-            FillHist(channelname+"/"+pre+"dilep_mass_"+ mass_window_postfix +suf, dimass, map_weight, n_mass_bin, mass_bin_pointer);
+            if (dipt < 100.){
+                FillHist(channelname+"/"+pre+"dilep_pt_"+ mass_window_postfix +suf, dipt, map_weight, sizeof(pt_bin)/sizeof(double)-1, (double*)pt_bin);
+                FillHist(channelname+"/"+pre+"dilep_mass_"+ mass_window_postfix +suf, dimass, map_weight, n_mass_bin, mass_bin_pointer);
+            }
+
+            if (dipt < 1000.) {
+                FillHist(channelname+"/"+pre+"dilep_pt_extended_"+ mass_window_postfix +suf, dipt, map_weight, sizeof(pt_bin_extended)/sizeof(double)-1, (double*)pt_bin_extended);
+                FillHist(channelname+"/"+pre+"dilep_mass_extended_"+ mass_window_postfix +suf, dimass, map_weight, n_mass_bin, mass_bin_pointer);
+            }
         }
     }// loop mass window
 }
@@ -1080,7 +1174,6 @@ void ISRAnalyzer::print_gen_particles(const vector<Gen>& gens){
     }
 }
 
-
 ISRAnalyzer::ISRAnalyzer(){
 
     job_number=-1;
@@ -1088,9 +1181,18 @@ ISRAnalyzer::ISRAnalyzer(){
     tunfold_parameter = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine, sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
         sizeof(mass_window)/sizeof(double)-1, mass_window, sizeof(mass_window)/sizeof(double)-1, mass_window, false, true, true, true, "dipt", "dimass"};
 
-    // ee2016/1d_dipt
+    //1d_dipt
     tunfold_parameter_1d_pt = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine, sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
         false, true, "dipt"};
+
+    tunfold_parameter_1d_pt_v2 = new TUnfoldParameter{sizeof(pt_bin_fine_v2)/sizeof(double)-1, pt_bin_fine_v2, sizeof(pt_bin_coarse_v2)/sizeof(double)-1, pt_bin_coarse_v2,
+        false, true, "dipt_v2"};
+
+    tunfold_parameter_1d_pt_v3 = new TUnfoldParameter{sizeof(pt_bin_fine_v3)/sizeof(double)-1, pt_bin_fine_v3, sizeof(pt_bin_coarse_v3)/sizeof(double)-1, pt_bin_coarse_v3,
+        false, true, "dipt_v3"};
+
+    tunfold_parameter_1d_pt_v4 = new TUnfoldParameter{sizeof(pt_bin_fine_v4)/sizeof(double)-1, pt_bin_fine_v4, sizeof(pt_bin_coarse_v4)/sizeof(double)-1, pt_bin_coarse_v4,
+        false, true, "dipt_v4"};
 
     // ee2016/1d_dimass
     tunfold_parameter_1d_mass_el = new TUnfoldParameter{sizeof(mass_bin_fine_el)/sizeof(double)-1, mass_bin_fine_el, sizeof(mass_bin_coarse_el)/sizeof(double)-1, mass_bin_coarse_el,
