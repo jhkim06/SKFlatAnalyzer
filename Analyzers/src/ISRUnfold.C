@@ -20,7 +20,6 @@ bool ISRUnfold::is_same_bin(TString channelname, TString pre, Double_t variable1
 
     if (bin_index1==bin_index2 && bin_index1 > 0 && bin_index1 <= temp_hist->GetNbinsX())
     {
-
         delete temp_bin;
         delete temp_hist;
 

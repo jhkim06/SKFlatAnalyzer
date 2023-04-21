@@ -35,15 +35,19 @@ void ISRAnalyzer::executeEvent(){
 
         vector<LHE> lhes=GetLHEs();
         LHE lhe_l0,lhe_l1;
-        GetDYLHEParticles(lhes,lhe_l0,lhe_l1);
+        GetDYLHEParticles(lhes, lhe_l0, lhe_l1);
 
         const vector<Gen> gens=GetGens();
-        Gen gen_parton0,gen_parton1,gen_l0,gen_l1,gen_l0_dressed,gen_l1_dressed,gen_l0_bare,gen_l1_bare;
+        Gen gen_parton0, gen_parton1, gen_l0, gen_l1, gen_l0_dressed, gen_l1_dressed, gen_l0_bare, gen_l1_bare;
+        
         SMPAnalyzerCore::GetDYGenParticles(gens,gen_parton0,gen_parton1,gen_l0,gen_l1, PreFSR);
         SMPAnalyzerCore::GetDYGenParticles(gens,gen_parton0,gen_parton1,gen_l0_dressed,gen_l1_dressed, DressedDRp1);
         SMPAnalyzerCore::GetDYGenParticles(gens,gen_parton0,gen_parton1,gen_l0_bare,gen_l1_bare, PostFSR);
 
-        Gen gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, gen_isr_l0_bare, gen_isr_l1_bare;
+        Gen gen_isr_parton0, gen_isr_parton1;
+        Gen gen_isr_l0, gen_isr_l1;
+        Gen gen_isr_l0_bare, gen_isr_l1_bare;
+        
         vector<const Gen*> added_photons;
         int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0_bare, gen_isr_l1_bare, PostFSR);
         DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
@@ -63,11 +67,20 @@ void ISRAnalyzer::executeEvent(){
 
         if(abs(gen_isr_l0_bare.PID()) == MUON){
             fill_mass_dependent_hists("muon", "prefsr", "", (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_gen_weight);
+            
             FillHist("muon_dilepton_mass_preFSR", (gen_isr_l0 + gen_isr_l1).M(), lumiweight, 3000, 0, 3000);
             FillHist("muon_dilepton_mass_postFSR", (gen_isr_l0_bare + gen_isr_l1_bare).M(), lumiweight, 3000, 0, 3000);
+            if ((gen_isr_l0 + gen_isr_l1).M() > 10)
+                FillHist("muon_dilepton_pt_preFSR", (gen_isr_l0 + gen_isr_l1).Pt(), lumiweight, 3000, 0, 3000);
+            if ((gen_isr_l0_bare + gen_isr_l1_bare).M() > 10)
+                FillHist("muon_dilepton_pt_postFSR", (gen_isr_l0_bare + gen_isr_l1_bare).Pt(), lumiweight, 3000, 0, 3000);
+            
             FillHist("muon_dilepton_mass_preFSR_HS", (gen_l0 + gen_l1).M(), lumiweight, 3000, 0, 3000);
             FillHist("muon_dilepton_mass_postFSR_HS", (gen_l0_bare + gen_l1_bare).M(), lumiweight, 3000, 0, 3000);
-
+            if ((gen_l0 + gen_l1).M( )> 10)
+                FillHist("muon_dilepton_pt_preFSR_HS", (gen_l0 + gen_l1).Pt(), lumiweight, 3000, 0, 3000);
+            if ((gen_l0_bare + gen_l1_bare).M() > 10)
+                FillHist("muon_dilepton_pt_postFSR_HS", (gen_l0_bare + gen_l1_bare).Pt(), lumiweight, 3000, 0, 3000);
 
             double dimass = (gen_l0 + gen_l1).M();
             double dipt = (gen_l0 + gen_l1).Pt();
@@ -133,10 +146,23 @@ void ISRAnalyzer::executeEvent(){
         }
         if(abs(gen_isr_l0_bare.PID()) == ELECTRON){
             fill_mass_dependent_hists("electron", "prefsr", "", (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1, map_gen_weight);
+            
             FillHist("electron_dilepton_mass_preFSR", (gen_isr_l0 + gen_isr_l1).M(), lumiweight, 3000, 0, 3000);
             FillHist("electron_dilepton_mass_postFSR", (gen_isr_l0_bare + gen_isr_l1_bare).M(), lumiweight, 3000, 0, 3000);
+            
+            if ((gen_isr_l0 + gen_isr_l1).M() > 10)
+                FillHist("electron_dilepton_pt_preFSR", (gen_isr_l0 + gen_isr_l1).Pt(), lumiweight, 3000, 0, 3000);
+            if ((gen_isr_l0_bare + gen_isr_l1_bare).M() > 10)
+                FillHist("electron_dilepton_pt_postFSR", (gen_isr_l0_bare + gen_isr_l1_bare).Pt(), lumiweight, 3000, 0, 3000);
+            
             FillHist("electron_dilepton_mass_preFSR_HS", (gen_l0 + gen_l1).M(), lumiweight, 3000, 0, 3000);
             FillHist("electron_dilepton_mass_postFSR_HS", (gen_l0_bare + gen_l1_bare).M(), lumiweight, 3000, 0, 3000);
+            
+            if ((gen_l0 + gen_l1).M() > 10)
+                FillHist("electron_dilepton_pt_preFSR_HS", (gen_l0 + gen_l1).Pt(), lumiweight, 3000, 0, 3000);
+            if ((gen_l0_bare + gen_l1_bare).M() > 10)
+                FillHist("electron_dilepton_pt_postFSR_HS", (gen_l0_bare + gen_l1_bare).Pt(), lumiweight, 3000, 0, 3000);
+            
             for(auto photon: added_photons){
                 if(gen_l0_bare.DeltaR(*photon) < gen_l1_bare.DeltaR(*photon))
                     FillHist("electron_DR_added_photon", gen_l0_bare.DeltaR(*photon), lumiweight, 100, 0, 1.);
@@ -146,7 +172,6 @@ void ISRAnalyzer::executeEvent(){
         }
 
         /*
-        *
         if (abs((gen_l0_bare+gen_l1_bare).M()-(gen_isr_l0_bare+gen_isr_l1_bare).M()) > 1e-5){
 
             //get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR);
@@ -880,6 +905,8 @@ int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen
     vector<const Gen*> leptons;
     vector<const Gen*> photons;
 
+    // set parton0, parton1
+    // set leptons, photons
     for(int i = 0; i < ngen; i++){
         if(!gens.at(i).isPrompt()) continue;
 
@@ -1014,10 +1041,9 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
         for(int j = i + 1;j < nlepton;j++){
             if(leptons[j]->Index() == lepton0.Index()||leptons[j]->Index() == lepton1.Index()) continue;
             if(!(leptons[i]->PID()+leptons[j]->PID() == 0)) continue;
-            vector<int> history_i = TrackGenSelfHistory(*leptons[i], gens);
+            vector<int> history_i = TrackGenSelfHistory(*leptons[i], gens); // trackGenSelfHistory return (currentidx, motherindex)
             vector<int> history_j = TrackGenSelfHistory(*leptons[j], gens);
-            if(history_i.at(1) == history_j.at(1)) photons.push_back(&gens[history_i.at(1)]);
-
+            if(history_i.at(1) == history_j.at(1)) photons.push_back(&gens[history_i.at(1)]); //
         }
     }
 
@@ -1062,7 +1088,6 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
 
 
 int ISRAnalyzer::get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<const Gen*>& leptons, Gen& lepton0, Gen& lepton1, bool verbose){
-// TODO return DY vertex index
 
     int nlepton=leptons.size();
     int DY_index = -1;
@@ -1087,7 +1112,7 @@ int ISRAnalyzer::get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<c
             if(history_intersection.size() == 0) continue;
             std::sort(history_intersection.begin(), history_intersection.end(), greater <>());
 
-            // check if lepton vertex included
+            // check if lepton vertex included ex) e^- to e^-e^-e^+
             bool letpon_vertex_included = false;
             for(auto vertex : history_intersection){
                 int pid_vertex = gens.at(vertex).PID();
@@ -1132,6 +1157,7 @@ int ISRAnalyzer::get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<c
     return DY_index;
 }
 
+// save index starting from the current index of particle to the final index of mother particle
 void ISRAnalyzer::save_gen_history(const vector<Gen>& gens, const Gen& lepton, vector<int>& index_vector, const int index_limit){
 
     //int pid = lepton.PID();
