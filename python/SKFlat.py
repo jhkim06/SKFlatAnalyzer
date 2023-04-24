@@ -30,6 +30,7 @@ parser.add_argument('--nmax', dest='NMax', default=0, type=int, help="maximum ru
 parser.add_argument('--reduction', dest='Reduction', default=1, type=float)
 parser.add_argument('--memory', dest='Memory', default=0, type=float)
 parser.add_argument('--batchname',dest='BatchName', default="")
+parser.add_argument('--usejobnumber',action='store_true')
 args = parser.parse_args()
 
 if args.Year!="":
@@ -475,6 +476,9 @@ void {2}(){{
 
   m.SetTreeName("recoTree/SKFlat");
 '''.format(args.Analyzer, libdir, runfunctionname, IncludeLine)
+
+    if args.usejobnumber :
+        out.write('  m.set_job_number('+str(it_job)+');\n')
 
     out.write('  m.LogEvery = '+str(LogEvery)+';\n')
 

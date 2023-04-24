@@ -26,5 +26,7 @@
 #pragma link C++ class FakeAnalyzer+;
 #pragma link C++ class SkimTree_EgammaTnP+;
 #pragma link C++ class DZAnalyzer+;
+#pragma link C++ class ISRUnfold+;
+#pragma link C++ class ISRAnalyzer+;
 
 #endif
