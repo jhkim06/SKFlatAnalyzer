@@ -191,8 +191,8 @@ void ISRAnalyzer::ResetRecoWeights(Parameter& p){
   p.w.triggerSF=1.;
   p.w.triggerSF_sys=fEff->GetStructure(p.k.triggerSF[0]);
   p.doublemap["btagSF"]=1.;
-}
 
+}
 
 void ISRAnalyzer::ResetGenWeights(Parameter& p){
 
@@ -220,6 +220,7 @@ void ISRAnalyzer::FillHists(Parameter& p){
         }
 
         if (IsDYSample && p.hprefix!="tau_"){
+
             const vector<Gen> gens=GetGens();
             Gen gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, gen_isr_l0_bare, gen_isr_l1_bare;
             vector<const Gen*> added_photons;
@@ -237,17 +238,17 @@ void ISRAnalyzer::FillHists(Parameter& p){
                 EvalWeights(preco);
 
                 // truth level
-                fill_unfold_hists(p.channel, p.hprefix, p.suffix,
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                         (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
                         p.weightmap, *temp_tunfold_parameter, TUnfold_Bin::truth_bin);
                 // response matrix
-                fill_unfold_response_matrixs(p.channel, p.hprefix, p.suffix,
+                fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
                         (Particle*)p.lepton0, (Particle*)p.lepton1,
                         (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
                         preco.weightmap, pgen.weightmap, *temp_tunfold_parameter);
             }
         }
-        fill_unfold_hists(p.channel, p.hprefix, p.suffix, (Particle*)p.lepton0, (Particle*)p.lepton1, 
+        fill_unfold_hists(p.prefix, p.hprefix, p.suffix, (Particle*)p.lepton0, (Particle*)p.lepton1, 
                           p.weightmap, *temp_tunfold_parameter, TUnfold_Bin::smeared_bin);
     }
 }
