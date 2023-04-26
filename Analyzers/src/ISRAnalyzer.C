@@ -17,7 +17,7 @@ void ISRAnalyzer::initializeAnalyzer(){
         exit(EXIT_FAILURE);
     }
     
-    IsNominalRun=!HasFlag("SYS")&&!HasFlag("PDFSYS")&&IsSkimmed;
+    IsNominalRun=!HasFlag("SYS")&&!HasFlag("PDFSYS");
 }
 
 void ISRAnalyzer::executeEvent(){
@@ -64,6 +64,7 @@ bool ISRAnalyzer::PassSelection(Parameter& p){
     for(const auto& jet:jets)
         if(jet.GetTaggerResult(jtp.j_Tagger) > mcCorr->GetJetTaggingCutValue(jtp.j_Tagger, jtp.j_WP))
             n_bjet++;
+    
     p.intmap["nbjet"]=n_bjet;
     p.doublemap["btagSF"]=mcCorr->GetBTaggingReweight_1a(jets,jtp);
     p.doublemap["btagSF_hup"]=mcCorr->GetBTaggingReweight_1a(jets,jtp,"SystUpHTag");
@@ -200,7 +201,7 @@ void ISRAnalyzer::FillHists(Parameter& p){
     if (dipt < 3000 && dimass > 15 && dimass < 3000) {
         
         TUnfoldParameter* temp_tunfold_parameter;
-        if (p.channel.Contains(TRegexp("mm"))) {
+        if (p.channel.Contains("mm")) {
             temp_tunfold_parameter = tunfold_parameter_mm;
         } else {
             temp_tunfold_parameter = tunfold_parameter_ee;
@@ -216,7 +217,7 @@ void ISRAnalyzer::FillHists(Parameter& p){
             
             int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
             
-            // require same kinematic cuts both reconstruction and truth level
+            // require the same kinematic cuts for the truth level as for the reco level
             if (pass_lepton_kinematic_selections(p, &gen_isr_l0, &gen_isr_l1)) { // require the same kinematic cuts on gen level
                 
                 Parameter pgen=p;
@@ -232,17 +233,23 @@ void ISRAnalyzer::FillHists(Parameter& p){
                                              (Particle*)p.lepton0, (Particle*)p.lepton1,
                                              (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
                                              p.weightmap, pgen.weightmap, *temp_tunfold_parameter);
+            } else {
+                // fake DY events
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake",
+                                  (Particle*)p.lepton0, (Particle*)p.lepton1,
+                                  p.weightmap, *temp_tunfold_parameter, TUnfold_Bin::smeared_bin);
             }
         }
         // reco level
-        fill_unfold_hists(p.prefix, p.hprefix, p.suffix, (Particle*)p.lepton0, (Particle*)p.lepton1,
+        fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
+                          (Particle*)p.lepton0, (Particle*)p.lepton1,
                           p.weightmap, *temp_tunfold_parameter, TUnfold_Bin::smeared_bin);
     }
 }
 
 bool ISRAnalyzer::pass_lepton_kinematic_selections(const Parameter& p, Particle* l0, Particle* l1){
     
-    TLorentzVector dilepton=*p.lepton0+*p.lepton1;
+    TLorentzVector dilepton=*l0+*l1;
     double dimass=dilepton.M();
     double dirap=dilepton.Rapidity();
     double dipt=dilepton.Pt();
@@ -252,7 +259,7 @@ bool ISRAnalyzer::pass_lepton_kinematic_selections(const Parameter& p, Particle*
         || ( (*l0).Pt() > p.c.lepton1pt && (*l1).Pt() > p.c.lepton0pt)) {
         
         double eta_cut = 2.5;
-        if (p.channel.Contains(TRegexp("mm"))) eta_cut = 2.4;
+        if (p.channel.Contains("mm")) eta_cut = 2.4;
         
         if (fabs((*l0).Eta()) < eta_cut && fabs((*l1).Eta()) < eta_cut) {
             
