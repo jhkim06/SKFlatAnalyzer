@@ -60,10 +60,9 @@ public:
   virtual bool PassSelection(Parameter& p);
   virtual void EvalWeights(Parameter& p);
   virtual void ResetRecoWeights(Parameter& p);
-  virtual void ResetGenWeights(Parameter& p);
   virtual void FillHists(Parameter& p);
 
-    bool pass_lepton_kinematic_selections(const Parameter& p);
+    bool pass_lepton_kinematic_selections(const Parameter& p, Particle* l0, Particle* l1);
     int get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& letpon0, Gen& lepton1, int mode);
     int get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& letpon0, Gen& lepton1, int mode, vector<const Gen*>& added_photons);
     int get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<const Gen*>& leptons, Gen& lepton0, Gen& lepton1, bool verbose=false);

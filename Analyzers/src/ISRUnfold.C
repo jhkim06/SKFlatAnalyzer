@@ -6,7 +6,8 @@ ISRUnfold::ISRUnfold(){
 ISRUnfold::~ISRUnfold(){
 }
 
-bool ISRUnfold::is_same_bin(TString channelname, TString pre, Double_t variable1, Double_t variable2, const TUnfoldParameter& par, const TUnfold_Bin mode)
+bool ISRUnfold::is_same_bin(TString channelname, TString pre,
+                            Double_t variable1, Double_t variable2, const TUnfoldParameter& par, const TUnfold_Bin mode)
 {
 
     TUnfoldBinning* temp_bin = new TUnfoldBinning("temp_bin");
@@ -34,7 +35,8 @@ bool ISRUnfold::is_same_bin(TString channelname, TString pre, Double_t variable1
 
 }
 
-void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode){
+void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
+                                  Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode){
 
     TLorentzVector dilepton = (*l0) + (*l1);
     double dimass = dilepton.M();
@@ -46,8 +48,8 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     // get desired bin definition
     string full_bin_name = (string)channelname+"/"+(string)pre+par.bin_name;
     std::map<TString, tuple<TUnfoldBinning*, TUnfoldBinning*>>::iterator mapit = map_tunfoldbins.find(full_bin_name);
+    
     if (mapit != map_tunfoldbins.end()){  // bin definiton exists
-
         if (mode == TUnfold_Bin::smeared_bin) bin_pointer = get<0>(map_tunfoldbins[full_bin_name]);
         else if (mode == TUnfold_Bin::truth_bin) bin_pointer = get<1>(map_tunfoldbins[full_bin_name]);
     }
@@ -59,6 +61,7 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
         truth_bin->AddAxis(par.first_axis_name, par.n_first_axis_truth, par.first_axis_truth, par.use_first_axis_uf, par.use_first_axis_of);
         smeared_bin->AddAxis(par.first_axis_name, par.n_first_axis_smeared, par.first_axis_smeared, par.use_first_axis_uf, par.use_first_axis_of);
         
+        // for 2D, add the second axis
         if(par.is_2D){
         truth_bin->AddAxis(par.second_axis_name, par.n_second_axis_truth, par.second_axis_truth, par.use_second_axis_uf, par.use_second_axis_of);
         smeared_bin->AddAxis(par.second_axis_name, par.n_second_axis_smeared, par.second_axis_smeared, par.use_second_axis_uf, par.use_second_axis_of);
@@ -102,7 +105,8 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     fill_unfold_hist(channelname+"/"+pre+par.bin_name+"_"+bin_prefix+suf, index, weights, bin_pointer, par.is_2D);
 }
 
-void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double> reco_weights, map<TString,double> gen_weights, const TUnfoldParameter& par)
+void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, TString suf,
+                                             Particle* l0, Particle* l1, Particle* truth_l0, Particle* truth_l1, map<TString,double> reco_weights, map<TString,double> gen_weights, const TUnfoldParameter& par)
 {
 
     TLorentzVector dilepton_smeared=(*l0)+(*l1);
@@ -118,6 +122,7 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
     
     string full_bin_name = (string)channelname+"/"+(string)pre+par.bin_name;
     std::map<TString, tuple<TUnfoldBinning*, TUnfoldBinning*>>::iterator mapit = map_tunfoldbins.find(full_bin_name);
+    
     if (mapit != map_tunfoldbins.end()){  // bin definiton exists
         bin_pointer_smeared=get<0>(map_tunfoldbins[full_bin_name]);
         bin_pointer_truth=get<1>(map_tunfoldbins[full_bin_name]);
@@ -170,7 +175,6 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
             cout <<"ISRUnfold::fill_unfold_hists check bin definition." << endl;
             exit(EXIT_FAILURE);
         }
-
     }
 
     string bin_prefix="responseM";
@@ -181,7 +185,7 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
 void ISRUnfold::fill_unfold_hist(TString histname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer, bool is_2D){
 
     for (const auto& [suffix,weight]:weights){
-        fill_unfold_hist(histname+suffix,value,weight, bin_pointer, is_2D);
+        fill_unfold_hist(histname+suffix, value, weight, bin_pointer, is_2D);
     }
 }
 
@@ -215,9 +219,9 @@ void ISRUnfold::fill_unfold_response_matrix(TString hname, Double_t value_smeare
         maphist_TH2D[hname] = this_hist;
   }
     
-  this_hist->Fill(value_truth, value_smeared, reco_weight*gen_weight);
-  if (is_2D) this_hist->Fill(value_truth, 0., (1-reco_weight)*gen_weight); // bin zero
-  else this_hist->Fill(value_truth, -1., (1-reco_weight)*gen_weight); // bin zero 
+  this_hist->Fill(value_truth, value_smeared, reco_weight);
+  if (is_2D) this_hist->Fill(value_truth, 0., gen_weight-reco_weight); // bin zero for 2D
+  else this_hist->Fill(value_truth, -1., gen_weight-reco_weight); // bin zero for 1D
 }
 
 void ISRUnfold::WriteHist(){

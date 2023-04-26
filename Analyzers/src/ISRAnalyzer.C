@@ -190,16 +190,6 @@ void ISRAnalyzer::ResetRecoWeights(Parameter& p){
     p.w.triggerSF=1.;
     p.w.triggerSF_sys=fEff->GetStructure(p.k.triggerSF[0]);
     p.doublemap["btagSF"]=1.;
-    
-}
-
-void ISRAnalyzer::ResetGenWeights(Parameter& p){
-    
-    p.w.lumiweight =1.;
-    p.w.PUweight=1; p.w.PUweight_up=1; p.w.PUweight_down=1;
-    p.w.zptweight=1;
-    p.w.weakweight=1;
-    
 }
 
 void ISRAnalyzer::FillHists(Parameter& p){
@@ -219,32 +209,31 @@ void ISRAnalyzer::FillHists(Parameter& p){
         }
         
         if (IsDYSample && p.hprefix!="tau_"){
-            
+           
             const vector<Gen> gens=GetGens();
-            Gen gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, gen_isr_l0_bare, gen_isr_l1_bare;
+            Gen gen_isr_parton0, gen_isr_parton1;
+            Gen gen_isr_l0, gen_isr_l1; // dressed gen particles
+            Gen gen_isr_l0_bare, gen_isr_l1_bare;
             vector<const Gen*> added_photons;
+            
             int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
             
             // require same kinematic cuts both reconstruction and truth level
-            if (pass_lepton_kinematic_selections(p)) {
+            if (pass_lepton_kinematic_selections(p, &gen_isr_l0, &gen_isr_l1)) { // require the same kinematic cuts on gen level
                 
                 Parameter pgen=p;
                 ResetRecoWeights(pgen);
                 EvalWeights(pgen);
                 
-                Parameter preco=p;
-                ResetGenWeights(preco);
-                EvalWeights(preco);
-                
                 // truth level
                 fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  p.weightmap, *temp_tunfold_parameter, TUnfold_Bin::truth_bin);
+                                  pgen.weightmap, *temp_tunfold_parameter, TUnfold_Bin::truth_bin);
                 // response matrix
                 fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
                                              (Particle*)p.lepton0, (Particle*)p.lepton1,
                                              (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                             preco.weightmap, pgen.weightmap, *temp_tunfold_parameter);
+                                             p.weightmap, pgen.weightmap, *temp_tunfold_parameter);
             }
         }
         fill_unfold_hists(p.prefix, p.hprefix, p.suffix, (Particle*)p.lepton0, (Particle*)p.lepton1,
@@ -252,7 +241,7 @@ void ISRAnalyzer::FillHists(Parameter& p){
     }
 }
 
-bool ISRAnalyzer::pass_lepton_kinematic_selections(const Parameter& p){
+bool ISRAnalyzer::pass_lepton_kinematic_selections(const Parameter& p, Particle* l0, Particle* l1){
     
     TLorentzVector dilepton=*p.lepton0+*p.lepton1;
     double dimass=dilepton.M();
@@ -260,14 +249,15 @@ bool ISRAnalyzer::pass_lepton_kinematic_selections(const Parameter& p){
     double dipt=dilepton.Pt();
     
     bool passed = false;
-    if (((*p.lepton0).Pt()>p.c.lepton0pt&&(*p.lepton1).Pt()>p.c.lepton1pt) || ((*p.lepton0).Pt()>p.c.lepton1pt&&(*p.lepton1).Pt()>p.c.lepton0pt)) {
+    if (( (*l0).Pt() > p.c.lepton0pt && (*l1).Pt( ) > p.c.lepton1pt)
+        || ( (*l0).Pt() > p.c.lepton1pt && (*l1).Pt() > p.c.lepton0pt)) {
         
         double eta_cut = 2.5;
         if (p.channel.Contains(TRegexp("mm"))) eta_cut = 2.4;
         
-        if (fabs((*p.lepton0).Eta())<eta_cut&&fabs((*p.lepton1).Eta())<eta_cut) {
-            //if (((*l0)+(*l1)).Pt()<p.dilep_pt_cut) {
-            if (dipt<3000 && dimass>15 && dimass<3000) {
+        if (fabs((*l0).Eta()) < eta_cut && fabs((*l1).Eta()) < eta_cut) {
+            
+            if (dipt < 3000 && dimass > 15 && dimass < 3000) {
                 passed = true;
             }
         }
