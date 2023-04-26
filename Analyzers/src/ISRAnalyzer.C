@@ -43,11 +43,9 @@ SMPAnalyzerCore::Parameter ISRAnalyzer::MakeParameter(TString key){
     
     p.weightbit = 0;
     
-    if (IsSkimmed) {
-        if(IsNominalRun) p.weightbit|=NominalWeight;
-        if(HasFlag("SYS")&&!IsDATA&&(p.channel=="ee"||p.channel=="mm")) p.weightbit|=SystematicWeight|EfficiencyWeight;
-        if(HasFlag("PDFSYS")&&!IsDATA&&(p.channel=="ee"||p.channel=="mm")) p.weightbit|=PDFWeight;
-    } else p.weightbit|=NominalWeight|SystematicWeight|EfficiencyWeight|PDFWeight;
+    if(IsNominalRun) p.weightbit|=NominalWeight;
+    if(HasFlag("SYS")&&!IsDATA&&(p.channel=="ee"||p.channel=="mm")) p.weightbit|=SystematicWeight|EfficiencyWeight;
+    if(HasFlag("PDFSYS")&&!IsDATA&&(p.channel=="ee"||p.channel=="mm")) p.weightbit|=PDFWeight;
     
     if(HasFlag("nbjet")) p.prefix+="nbjet/";
     else if(HasFlag("0bjet")) p.prefix+="0bjet/";
@@ -193,7 +191,7 @@ void ISRAnalyzer::ResetRecoWeights(Parameter& p){
 }
 
 void ISRAnalyzer::FillHists(Parameter& p){
-    // if(!IsSkimmed) return;
+    
     TLorentzVector dilepton=*p.lepton0+*p.lepton1;
     double dimass=dilepton.M();
     double dirap=dilepton.Rapidity();
@@ -236,6 +234,7 @@ void ISRAnalyzer::FillHists(Parameter& p){
                                              p.weightmap, pgen.weightmap, *temp_tunfold_parameter);
             }
         }
+        // reco level
         fill_unfold_hists(p.prefix, p.hprefix, p.suffix, (Particle*)p.lepton0, (Particle*)p.lepton1,
                           p.weightmap, *temp_tunfold_parameter, TUnfold_Bin::smeared_bin);
     }
