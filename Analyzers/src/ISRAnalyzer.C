@@ -200,11 +200,15 @@ void ISRAnalyzer::FillHists(Parameter& p){
     
     if (dipt < 3000 && dimass > 15 && dimass < 3000) {
         
-        TUnfoldParameter* tunfold_bin_parameter;
+        TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter;
+        TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter;
+
         if (p.channel.Contains("mm")) {
-            tunfold_bin_parameter = tunfold_bin_parameter_mm;
+            tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_mm;
+            tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_mm;
         } else {
-            tunfold_bin_parameter = tunfold_bin_parameter_ee;
+            tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_ee;
+            tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_ee;
         }
         
         if (IsDYSample && p.hprefix!="tau_"){
@@ -227,23 +231,36 @@ void ISRAnalyzer::FillHists(Parameter& p){
                 // truth level
                 fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  pgen.weightmap, *tunfold_bin_parameter, TUnfold_Bin::truth_bin);
+                                  pgen.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::truth_bin);
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
+                                  (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                  pgen.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::truth_bin);
                 // response matrix
                 fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
                                              (Particle*)p.lepton0, (Particle*)p.lepton1,
                                              (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                             p.weightmap, pgen.weightmap, *tunfold_bin_parameter);
+                                             p.weightmap, pgen.weightmap, *tunfold_2D_pt_mass_bin_parameter);
+                fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
+                                             (Particle*)p.lepton0, (Particle*)p.lepton1,
+                                             (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                             p.weightmap, pgen.weightmap, *tunfold_2D_mass_pt_bin_parameter);
             } else {
                 // fake DY events
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake",
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake", // hprefix = "fake"
                                   (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                  p.weightmap, *tunfold_bin_parameter, TUnfold_Bin::smeared_bin);
+                                  p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::smeared_bin);
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake", // hprefix = "fake"
+                                  (Particle*)p.lepton0, (Particle*)p.lepton1,
+                                  p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::smeared_bin);
             }
         }
         // reco level
         fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                           (Particle*)p.lepton0, (Particle*)p.lepton1,
-                          p.weightmap, *tunfold_bin_parameter, TUnfold_Bin::smeared_bin);
+                          p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::smeared_bin);
+        fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
+                          (Particle*)p.lepton0, (Particle*)p.lepton1,
+                          p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::smeared_bin);
     }
 }
 
@@ -583,19 +600,33 @@ ISRAnalyzer::ISRAnalyzer(){
     
     job_number=-1;
     
-    tunfold_bin_parameter_mm = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
+    tunfold_2D_pt_mass_bin_parameter_mm = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
         sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
         sizeof(mass_window_mm)/sizeof(double)-1, mass_window_mm,
         sizeof(mass_window_mm)/sizeof(double)-1, mass_window_mm,
         false, true, true, true,
         "dipt", "dimass"};
     
-    tunfold_bin_parameter_ee = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
+    tunfold_2D_pt_mass_bin_parameter_ee = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
         sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
         sizeof(mass_window_ee)/sizeof(double)-1, mass_window_ee,
         sizeof(mass_window_ee)/sizeof(double)-1, mass_window_ee,
         false, true, true, true,
         "dipt", "dimass"};
+
+    tunfold_2D_mass_pt_bin_parameter_mm = new TUnfoldParameter{sizeof(mass_bin_fine_mu)/sizeof(double)-1, mass_bin_fine_mu,
+        sizeof(mass_bin_coarse_mu)/sizeof(double)-1, mass_bin_coarse_mu,
+        sizeof(pt_window)/sizeof(double)-1, pt_window,
+        sizeof(pt_window)/sizeof(double)-1, pt_window,
+        true, true, false, true,
+        "dimass", "dipt"};
+    
+    tunfold_2D_mass_pt_bin_parameter_ee = new TUnfoldParameter{sizeof(mass_bin_fine_el)/sizeof(double)-1, mass_bin_fine_el,
+        sizeof(mass_bin_coarse_el)/sizeof(double)-1, mass_bin_coarse_el,
+        sizeof(pt_window)/sizeof(double)-1, pt_window,
+        sizeof(pt_window)/sizeof(double)-1, pt_window,
+        true, true, false, true,
+        "dimass", "dipt"};
 }
 ISRAnalyzer::~ISRAnalyzer(){
     //DeleteCosThetaWeight();

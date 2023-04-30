@@ -26,9 +26,13 @@ enum GenPID{
 };
 
 const int nmass_window = 6;
+const double mass_window[] = {52, 64, 81, 101, 200, 320, 1000};
 const double mass_window_mm[] = {40, 64, 81, 101, 200, 320, 1000};
 const double mass_window_ee[] = {50, 64, 81, 101, 200, 320, 1000};
 const double mass_window_an026[] = {40, 76, 106, 170, 350, 1000};
+
+const int npt_window = 1;
+const double pt_window[] = {0, 100};
 
 const int n_pt_bin_fine=18;
 const double pt_bin_fine[]={0., 2., 4., 6., 8., 10., 12., 14., 18., 23, 28., 34., 40., 47.5, 55., 65., 75., 87.5, 100.};
@@ -89,8 +93,10 @@ public:
 private:
     int job_number;
     
-    TUnfoldParameter* tunfold_bin_parameter_ee;
-    TUnfoldParameter* tunfold_bin_parameter_mm;
+    TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter_ee;
+    TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter_mm;
+    TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter_ee;
+    TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter_mm;
     
     //map<TString, TUnfoldParameter*> tunfold_parameters;
     
