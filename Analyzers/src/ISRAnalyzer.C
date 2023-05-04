@@ -24,9 +24,8 @@ void ISRAnalyzer::executeEvent(){
     //// FIXME some events of DYJets has nan PDF weights. I don't know why...
     
     if(MCSample=="DYJets"&&!isnormal(weight_Scale->at(0))) return;
-    
     ///////////////// GEN level /////////////////////
-    //executeEventGen();
+    executeEventGen();
     
     ///////////////// RECO level /////////////////////
     if(!IsDATA||DataStream.Contains("DoubleMuon")){
@@ -83,7 +82,54 @@ bool ISRAnalyzer::PassSelection(Parameter& p){
 }
 
 void ISRAnalyzer::executeEventGen(){
-    if(IsDYSample||MCSample.Contains("GamGamToLL")||MCSample.Contains("TTLL")){
+
+    if(IsDYSample){
+        ///
+        if(abs(lhe_l0.ID())!=15&&abs(lhe_l1.ID())!=15){ 
+            Parameter p;
+            if( (abs(lhe_l0.ID())==11&&abs(lhe_l1.ID())==11) || (!lhes.size()&&abs(gen_l0.PID())==11&&abs(gen_l1.PID())==11) ){
+                p=MakeParameter("ee");
+            } else if( (abs(lhe_l0.ID())==13&&abs(lhe_l1.ID())==13) || (!lhes.size()&&abs(gen_l0.PID())==13&&abs(gen_l1.PID())==13) ){
+                p=MakeParameter("mm");
+            } else {
+                exit(EXIT_FAILURE); 
+            }
+
+            TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter;
+            TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter;
+
+            if (p.channel.Contains("mm")) {
+                tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_mm;
+                tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_mm;
+            } else {
+                tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_ee;
+                tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_ee;
+            }
+
+            const vector<Gen> gens=GetGens();
+            Gen gen_isr_parton0, gen_isr_parton1;
+            Gen gen_isr_l0, gen_isr_l1; // dressed gen particles
+            vector<const Gen*> added_photons;
+            
+            int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
+            TLorentzVector dilepton = gen_isr_l0 + gen_isr_l1;
+            double dimass=dilepton.M();
+            double dirap=dilepton.Rapidity();
+            double dipt=dilepton.Pt();
+            // apply only dipt and dimass cut
+
+            map<TString,double> map_weight; 
+            map_weight[""]=p.w.lumiweight*p.w.zptweight; // TODO check which gen lepton used to get weight
+            
+            if (dipt < 3000 && dimass > 15 && dimass < 3000) { 
+                fill_unfold_hists(p.prefix, "woLepCut_"+p.hprefix, p.suffix,
+                                  (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                  map_weight, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::truth_bin);
+                fill_unfold_hists(p.prefix, "woLepCut_"+p.hprefix, p.suffix,
+                                  (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                  map_weight, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::truth_bin);
+            }
+        }
     }
 }
 
@@ -175,7 +221,6 @@ void ISRAnalyzer::EvalWeights(Parameter& p){
 }
 
 void ISRAnalyzer::ResetRecoWeights(Parameter& p){
-    
     p.w.prefireweight=1.; p.w.prefireweight_up=1.; p.w.prefireweight_down=1.;
     p.w.z0weight=1.;
     p.w.electronRECOSF=1.;
@@ -216,7 +261,6 @@ void ISRAnalyzer::FillHists(Parameter& p){
             const vector<Gen> gens=GetGens();
             Gen gen_isr_parton0, gen_isr_parton1;
             Gen gen_isr_l0, gen_isr_l1; // dressed gen particles
-            Gen gen_isr_l0_bare, gen_isr_l1_bare;
             vector<const Gen*> added_photons;
             
             int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
@@ -600,6 +644,7 @@ ISRAnalyzer::ISRAnalyzer(){
     
     job_number=-1;
     
+    // 2D bin for dipt dimass
     tunfold_2D_pt_mass_bin_parameter_mm = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
         sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
         sizeof(mass_window_mm)/sizeof(double)-1, mass_window_mm,
@@ -614,6 +659,7 @@ ISRAnalyzer::ISRAnalyzer(){
         false, true, true, true,
         "dipt", "dimass"};
 
+    // 2D bin for dimass dipt
     tunfold_2D_mass_pt_bin_parameter_mm = new TUnfoldParameter{sizeof(mass_bin_fine_mu)/sizeof(double)-1, mass_bin_fine_mu,
         sizeof(mass_bin_coarse_mu)/sizeof(double)-1, mass_bin_coarse_mu,
         sizeof(pt_window)/sizeof(double)-1, pt_window,
