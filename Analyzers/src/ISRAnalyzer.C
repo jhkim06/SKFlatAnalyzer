@@ -649,35 +649,41 @@ void ISRAnalyzer::print_gen_particles(const vector<Gen>& gens){
 ISRAnalyzer::ISRAnalyzer(){
     
     job_number=-1;
-    
+ 
     // 2D bin for dipt dimass
     tunfold_2D_pt_mass_bin_parameter_mm = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window_mm, mass_window_mm,
         false, true, true, true,
-        "dipt", "dimass"}; // TODO first axis unfolded name, first axis folded name second axis unfolded name second axis folded name
+        "dipt", "dimass",
+        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"}; 
     
     tunfold_2D_pt_mass_bin_parameter_ee = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window_ee, mass_window_ee,
         false, true, true, true,
-        "dipt", "dimass"};
+        "dipt", "dimass",
+        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"};
     
     // 2D bin for dimass dipt
     tunfold_2D_mass_pt_bin_parameter_mm = new TUnfoldParameter{mass_bin_fine_mu, mass_bin_coarse_mu, pt_window, pt_window,
         true, true, false, true,
-        "dimass", "dipt"};
+        "dimass", "dipt", 
+        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"};
     
     tunfold_2D_mass_pt_bin_parameter_ee = new TUnfoldParameter{mass_bin_fine_el, mass_bin_coarse_el, pt_window, pt_window,
         true, true, false, true,
-        "dimass", "dipt"};
+        "dimass", "dipt", 
+        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"};
 
     // extended dilepton pt bin
     // 2D bin for dipt dimass
     tunfold_2D_pt_mass_extended_bin_parameter = new TUnfoldParameter{pt_extended_bin_fine, pt_extended_bin_coarse, mass_window, mass_window,
         false, true, true, true,
-        "dipt", "dimass"};
+        "dipt", "dimass",
+        "folded_extended", "unfolded_extended", "folded_dimass55", "unfolded_dimass55"};
     
     // 2D bin for dimass dipt
     tunfold_2D_mass_pt_extended_bin_parameter = new TUnfoldParameter{mass_bin_fine, mass_bin_coarse, pt_extended_window, pt_extended_window,
         true, true, false, true,
-        "dimass", "dipt"};
+        "dimass", "dipt", 
+        "folded_dimass55", "unfolded_dimass55", "folded_extended", "unfolded_extended"};
 
 }
 ISRAnalyzer::~ISRAnalyzer(){

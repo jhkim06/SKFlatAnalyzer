@@ -11,7 +11,7 @@ bool ISRUnfold::is_same_bin(TString channelname, TString pre,
 {
 
     TUnfoldBinning* temp_bin = new TUnfoldBinning("temp_bin");
-    temp_bin->AddAxis(par.first_axis_name, par.n_first_axis_unfolded, par.first_axis_unfolded, par.use_first_axis_uf, par.use_first_axis_of);
+    temp_bin->AddAxis(par.first_axis_var_name, par.n_first_axis_unfolded, par.first_axis_unfolded.data(), par.use_first_axis_uf, par.use_first_axis_of);
     
     TH1D* temp_hist = (TH1D*) temp_bin->CreateHistogram("temp_hist", true);
 
@@ -58,13 +58,13 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
         TUnfoldBinning* unfolded_bin = new TUnfoldBinning("unfolded");
         TUnfoldBinning* folded_bin = new TUnfoldBinning("folded");
 
-        unfolded_bin->AddAxis(par.first_axis_name, par.n_first_axis_unfolded, par.first_axis_unfolded, par.use_first_axis_uf, par.use_first_axis_of);
-        folded_bin->AddAxis(par.first_axis_name, par.n_first_axis_folded, par.first_axis_folded, par.use_first_axis_uf, par.use_first_axis_of);
+        unfolded_bin->AddAxis(par.first_axis_var_name, par.n_first_axis_unfolded, par.first_axis_unfolded.data(), par.use_first_axis_uf, par.use_first_axis_of);
+        folded_bin  ->AddAxis(par.first_axis_var_name, par.n_first_axis_folded, par.first_axis_folded.data(), par.use_first_axis_uf, par.use_first_axis_of);
         
         // for 2D, add the second axis
         if(par.is_2D){
-        unfolded_bin->AddAxis(par.second_axis_name, par.n_second_axis_unfolded, par.second_axis_unfolded, par.use_second_axis_uf, par.use_second_axis_of);
-        folded_bin->AddAxis(par.second_axis_name, par.n_second_axis_folded, par.second_axis_folded, par.use_second_axis_uf, par.use_second_axis_of);
+        unfolded_bin->AddAxis(par.second_axis_var_name, par.n_second_axis_unfolded, par.second_axis_unfolded.data(), par.use_second_axis_uf, par.use_second_axis_of);
+        folded_bin->  AddAxis(par.second_axis_var_name, par.n_second_axis_folded, par.second_axis_folded.data(), par.use_second_axis_uf, par.use_second_axis_of);
         }
         
         map_tunfoldbins[full_bin_name] = make_tuple(folded_bin, unfolded_bin);
@@ -132,12 +132,12 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
         TUnfoldBinning* unfolded_bin = new TUnfoldBinning("unfolded"); // TODO get bin name from bin parameter
         TUnfoldBinning* folded_bin = new TUnfoldBinning("folded");
 
-        unfolded_bin->AddAxis(par.first_axis_name, par.n_first_axis_unfolded, par.first_axis_unfolded, par.use_first_axis_uf, par.use_first_axis_of);
-        folded_bin->AddAxis(par.first_axis_name, par.n_first_axis_folded, par.first_axis_folded, par.use_first_axis_uf, par.use_first_axis_of);
+        unfolded_bin->AddAxis(par.first_axis_var_name, par.n_first_axis_unfolded, par.first_axis_unfolded.data(), par.use_first_axis_uf, par.use_first_axis_of);
+        folded_bin->AddAxis(par.first_axis_var_name, par.n_first_axis_folded, par.first_axis_folded.data(), par.use_first_axis_uf, par.use_first_axis_of);
         
         if(par.is_2D){
-        unfolded_bin->AddAxis(par.second_axis_name, par.n_second_axis_unfolded, par.second_axis_unfolded, par.use_second_axis_uf, par.use_second_axis_of);
-        folded_bin->AddAxis(par.second_axis_name, par.n_second_axis_folded, par.second_axis_folded, par.use_second_axis_uf, par.use_second_axis_of);
+        unfolded_bin->AddAxis(par.second_axis_var_name, par.n_second_axis_unfolded, par.second_axis_unfolded.data(), par.use_second_axis_uf, par.use_second_axis_of);
+        folded_bin->AddAxis(par.second_axis_var_name, par.n_second_axis_folded, par.second_axis_folded.data(), par.use_second_axis_uf, par.use_second_axis_of);
         }
 
         map_tunfoldbins[full_bin_name] = make_tuple(folded_bin, unfolded_bin);

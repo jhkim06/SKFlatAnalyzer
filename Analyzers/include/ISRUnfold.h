@@ -22,45 +22,54 @@ public:
         ~TUnfoldParameter(){}
        
         // parameter for 2D binning  
-        TUnfoldParameter(const double* axis0_folded,
-                         const double* axis0_unfolded,
-                         const double* axis1_folded,
-                         const double* axis1_unfolded,
-                         bool first_axis_uf, bool first_axis_of, bool second_axis_uf, bool second_axis_of,
-                         const char* first_axis_name, const char* second_axis_name) : first_axis_folded{axis0_folded}, 
-                                                                                      first_axis_unfolded{axis0_unfolded},
-                                                                                      second_axis_folded{axis1_folded}, 
-                                                                                      second_axis_unfolded{axis1_unfolded},
-                                                                                      use_first_axis_uf{first_axis_uf}, use_first_axis_of{first_axis_of}, use_second_axis_uf{second_axis_uf}, use_second_axis_of{second_axis_of},
-                                                                                      first_axis_name{first_axis_name}, second_axis_name{second_axis_name}, is_2D{true} {
+        TUnfoldParameter(const vector<double>& axis0_folded,
+                         const vector<double>& axis0_unfolded,
+                         const vector<double>& axis1_folded,
+                         const vector<double>& axis1_unfolded,
+                         bool axis0_uf, bool axis0_of, bool axis1_uf, bool axis1_of,
+                         const char* axis0_var_name, const char* axis1_var_name, 
+                         const char* axis0_folded_bin_name, const char* axis0_unfolded_bin_name,
+                         const char* axis1_folded_bin_name, const char* axis1_unfolded_bin_name) : 
 
-                                                                                          n_first_axis_folded = sizeof(first_axis_folded)/sizeof(double)-1; 
-                                                                                          n_first_axis_unfolded = sizeof(first_axis_unfolded)/sizeof(double)-1; 
-                                                                                          n_second_axis_folded = sizeof(second_axis_folded)/sizeof(double)-1; 
-                                                                                          n_second_axis_unfolded = sizeof(second_axis_unfolded)/sizeof(double)-1; 
+            first_axis_folded(axis0_folded), 
+            first_axis_unfolded(axis0_unfolded),
+            second_axis_folded(axis1_folded), 
+            second_axis_unfolded(axis1_unfolded),
+            use_first_axis_uf{axis0_uf}, use_first_axis_of{axis0_of}, use_second_axis_uf{axis1_uf}, use_second_axis_of{axis1_of},
+            first_axis_var_name{axis0_var_name}, second_axis_var_name{axis1_var_name}, 
+            first_axis_folded_bin_name{axis0_folded_bin_name}, first_axis_unfolded_bin_name{axis0_unfolded_bin_name},
+            second_axis_folded_bin_name{axis1_folded_bin_name}, second_axis_unfolded_bin_name{axis1_unfolded_bin_name},
+            is_2D{true} 
+        {
+                                                                                          n_first_axis_folded    = first_axis_folded.size()-1; // number of bins
+                                                                                          n_first_axis_unfolded  = first_axis_unfolded.size()-1;
+                                                                                          n_second_axis_folded   = second_axis_folded.size()-1;
+                                                                                          n_second_axis_unfolded = second_axis_unfolded.size()-1;
 
-                                                                                          bin_name = "2D_"+(string)first_axis_name+"_"+(string)second_axis_name;
+                                                                                          bin_name = "2D_"+(string)first_axis_var_name+"_"+(string)second_axis_var_name;
         }
 
+        /*
         // parameter for 1D binning  
         TUnfoldParameter(const int n_axis0_folded, const double* axis0_folded,
                          const int n_axis0_unfolded, const double* axis0_unfolded,
                          bool first_axis_uf, bool first_axis_of,
-                         const char* first_axis_name) : n_first_axis_folded{n_axis0_folded}, first_axis_folded{axis0_folded}, n_first_axis_unfolded{n_axis0_unfolded}, first_axis_unfolded{axis0_unfolded},
+                         const char* first_axis_var_name) : n_first_axis_folded{n_axis0_folded}, first_axis_folded{axis0_folded}, n_first_axis_unfolded{n_axis0_unfolded}, first_axis_unfolded{axis0_unfolded},
         use_first_axis_uf{first_axis_uf}, use_first_axis_of{first_axis_of}, 
-        first_axis_name{first_axis_name}, is_2D{false} {
-            bin_name = "1D_"+(string)first_axis_name;
+        first_axis_var_name{first_axis_var_name}, is_2D{false} {
+            bin_name = "1D_"+(string)first_axis_var_name;
         }
+        */
         
         int n_first_axis_folded;
-        const double* first_axis_folded;
+        const vector<double> first_axis_folded;
         int n_first_axis_unfolded;
-        const double* first_axis_unfolded;
+        const vector<double> first_axis_unfolded;
         
         int n_second_axis_folded;
-        const double* second_axis_folded;
+        const vector<double> second_axis_folded;
         int n_second_axis_unfolded;
-        const double* second_axis_unfolded;
+        const vector<double> second_axis_unfolded;
         
         bool use_first_axis_uf;
         bool use_first_axis_of;
@@ -68,10 +77,15 @@ public:
         bool use_second_axis_of;
         
         string bin_name;
-        const char* first_axis_name;
-        const char* second_axis_name;
+        const char* first_axis_var_name;
+        const char* second_axis_var_name;
+        const char* first_axis_folded_bin_name;
+        const char* first_axis_unfolded_bin_name;
+        const char* second_axis_folded_bin_name;
+        const char* second_axis_unfolded_bin_name;
         
         bool is_2D=false;
+
     };
    
     void initializeISRUnfold(int job_num){
@@ -91,7 +105,6 @@ public:
     
     virtual void WriteHist();
 
-    // TODO
     // void set_tunfold_binnings();
     
     ISRUnfold();
