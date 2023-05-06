@@ -39,6 +39,9 @@ void ISRAnalyzer::executeEvent(){
 SMPAnalyzerCore::Parameter ISRAnalyzer::MakeParameter(TString key){
     
     Parameter p = SMPAnalyzerCore::MakeParameter(key);
+    if (key == "ee"){
+        p.SetElectrons(SMPGetElectrons("passMediumID",0.0,2.5));
+    }
     
     p.weightbit = 0;
     
@@ -82,22 +85,22 @@ bool ISRAnalyzer::PassSelection(Parameter& p){
 }
 
 void ISRAnalyzer::executeEventGen(){
-
+    
     if(IsDYSample){
         ///
-        if(abs(lhe_l0.ID())!=15&&abs(lhe_l1.ID())!=15){ 
+        if(abs(lhe_l0.ID())!=15&&abs(lhe_l1.ID())!=15){
             Parameter p;
             if( (abs(lhe_l0.ID())==11&&abs(lhe_l1.ID())==11) || (!lhes.size()&&abs(gen_l0.PID())==11&&abs(gen_l1.PID())==11) ){
                 p=MakeParameter("ee");
             } else if( (abs(lhe_l0.ID())==13&&abs(lhe_l1.ID())==13) || (!lhes.size()&&abs(gen_l0.PID())==13&&abs(gen_l1.PID())==13) ){
                 p=MakeParameter("mm");
             } else {
-                exit(EXIT_FAILURE); 
+                exit(EXIT_FAILURE);
             }
-
+            
             TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter;
             TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter;
-
+            
             if (p.channel.Contains("mm")) {
                 tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_mm;
                 tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_mm;
@@ -105,7 +108,7 @@ void ISRAnalyzer::executeEventGen(){
                 tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_ee;
                 tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_ee;
             }
-
+            
             const vector<Gen> gens=GetGens();
             Gen gen_isr_parton0, gen_isr_parton1;
             Gen gen_isr_l0, gen_isr_l1; // dressed gen particles
@@ -117,17 +120,17 @@ void ISRAnalyzer::executeEventGen(){
             double dirap=dilepton.Rapidity();
             double dipt=dilepton.Pt();
             // apply only dipt and dimass cut
-
-            map<TString,double> map_weight; 
+            
+            map<TString,double> map_weight;
             map_weight[""]=p.w.lumiweight*p.w.zptweight; // TODO check which gen lepton used to get weight
             
-            if (dipt < 3000 && dimass > 15 && dimass < 3000) { 
+            if (dipt < 3000 && dimass > 15 && dimass < 3000) {
                 fill_unfold_hists(p.prefix, "woLepCut_"+p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  map_weight, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::truth_bin);
+                                  map_weight, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::unfolded_bin);
                 fill_unfold_hists(p.prefix, "woLepCut_"+p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  map_weight, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::truth_bin);
+                                  map_weight, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::unfolded_bin);
             }
         }
     }
@@ -143,6 +146,9 @@ void ISRAnalyzer::EvalWeights(Parameter& p){
     if(p.weightbit&NominalWeight){
         // make function to get weight
         p.weightmap[""]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+        if(!IsDATA){
+            p.weightmap["_nozptweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+        }
     }
     if(p.weightbit&SystematicWeight){
         if(!IsDATA){
@@ -154,7 +160,7 @@ void ISRAnalyzer::EvalWeights(Parameter& p){
             p.weightmap["_prefireweight_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight_up*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             p.weightmap["_prefireweight_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight_down*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             
-            p.weightmap["_nozptweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            //p.weightmap["_nozptweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             p.weightmap["_noz0weight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             p.weightmap["_noweakweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             
@@ -247,7 +253,7 @@ void ISRAnalyzer::FillHists(Parameter& p){
         
         TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter;
         TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter;
-
+        
         if (p.channel.Contains("mm")) {
             tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_mm;
             tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_mm;
@@ -257,7 +263,7 @@ void ISRAnalyzer::FillHists(Parameter& p){
         }
         
         if (IsDYSample && p.hprefix!="tau_"){
-           
+            
             const vector<Gen> gens=GetGens();
             Gen gen_isr_parton0, gen_isr_parton1;
             Gen gen_isr_l0, gen_isr_l1; // dressed gen particles
@@ -265,20 +271,20 @@ void ISRAnalyzer::FillHists(Parameter& p){
             
             int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
             
-            // require the same kinematic cuts for the truth level as for the reco level
+            // require the same kinematic cuts for the unfolded level as for the reco level
             if (pass_lepton_kinematic_selections(p, &gen_isr_l0, &gen_isr_l1)) { // require the same kinematic cuts on gen level
                 
                 Parameter pgen=p;
                 ResetRecoWeights(pgen);
                 EvalWeights(pgen);
                 
-                // truth level
+                // unfolded level
                 fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  pgen.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::truth_bin);
+                                  pgen.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::unfolded_bin);
                 fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  pgen.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::truth_bin);
+                                  pgen.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::unfolded_bin);
                 // response matrix
                 fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
                                              (Particle*)p.lepton0, (Particle*)p.lepton1,
@@ -292,19 +298,19 @@ void ISRAnalyzer::FillHists(Parameter& p){
                 // fake DY events
                 fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake", // hprefix = "fake"
                                   (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                  p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::smeared_bin);
+                                  p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::folded_bin);
                 fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake", // hprefix = "fake"
                                   (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                  p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::smeared_bin);
+                                  p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::folded_bin);
             }
         }
         // reco level
         fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                           (Particle*)p.lepton0, (Particle*)p.lepton1,
-                          p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::smeared_bin);
+                          p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::folded_bin);
         fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                           (Particle*)p.lepton0, (Particle*)p.lepton1,
-                          p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::smeared_bin);
+                          p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::folded_bin);
     }
 }
 
@@ -645,34 +651,34 @@ ISRAnalyzer::ISRAnalyzer(){
     job_number=-1;
     
     // 2D bin for dipt dimass
-    tunfold_2D_pt_mass_bin_parameter_mm = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
-        sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
-        sizeof(mass_window_mm)/sizeof(double)-1, mass_window_mm,
-        sizeof(mass_window_mm)/sizeof(double)-1, mass_window_mm,
+    tunfold_2D_pt_mass_bin_parameter_mm = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window_mm, mass_window_mm,
+        false, true, true, true,
+        "dipt", "dimass"}; // TODO first axis unfolded name, first axis folded name second axis unfolded name second axis folded name
+    
+    tunfold_2D_pt_mass_bin_parameter_ee = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window_ee, mass_window_ee,
         false, true, true, true,
         "dipt", "dimass"};
     
-    tunfold_2D_pt_mass_bin_parameter_ee = new TUnfoldParameter{sizeof(pt_bin_fine)/sizeof(double)-1, pt_bin_fine,
-        sizeof(pt_bin_coarse)/sizeof(double)-1, pt_bin_coarse,
-        sizeof(mass_window_ee)/sizeof(double)-1, mass_window_ee,
-        sizeof(mass_window_ee)/sizeof(double)-1, mass_window_ee,
-        false, true, true, true,
-        "dipt", "dimass"};
-
     // 2D bin for dimass dipt
-    tunfold_2D_mass_pt_bin_parameter_mm = new TUnfoldParameter{sizeof(mass_bin_fine_mu)/sizeof(double)-1, mass_bin_fine_mu,
-        sizeof(mass_bin_coarse_mu)/sizeof(double)-1, mass_bin_coarse_mu,
-        sizeof(pt_window)/sizeof(double)-1, pt_window,
-        sizeof(pt_window)/sizeof(double)-1, pt_window,
+    tunfold_2D_mass_pt_bin_parameter_mm = new TUnfoldParameter{mass_bin_fine_mu, mass_bin_coarse_mu, pt_window, pt_window,
         true, true, false, true,
         "dimass", "dipt"};
     
-    tunfold_2D_mass_pt_bin_parameter_ee = new TUnfoldParameter{sizeof(mass_bin_fine_el)/sizeof(double)-1, mass_bin_fine_el,
-        sizeof(mass_bin_coarse_el)/sizeof(double)-1, mass_bin_coarse_el,
-        sizeof(pt_window)/sizeof(double)-1, pt_window,
-        sizeof(pt_window)/sizeof(double)-1, pt_window,
+    tunfold_2D_mass_pt_bin_parameter_ee = new TUnfoldParameter{mass_bin_fine_el, mass_bin_coarse_el, pt_window, pt_window,
         true, true, false, true,
         "dimass", "dipt"};
+
+    // extended dilepton pt bin
+    // 2D bin for dipt dimass
+    tunfold_2D_pt_mass_extended_bin_parameter = new TUnfoldParameter{pt_extended_bin_fine, pt_extended_bin_coarse, mass_window, mass_window,
+        false, true, true, true,
+        "dipt", "dimass"};
+    
+    // 2D bin for dimass dipt
+    tunfold_2D_mass_pt_extended_bin_parameter = new TUnfoldParameter{mass_bin_fine, mass_bin_coarse, pt_extended_window, pt_extended_window,
+        true, true, false, true,
+        "dimass", "dipt"};
+
 }
 ISRAnalyzer::~ISRAnalyzer(){
     //DeleteCosThetaWeight();
