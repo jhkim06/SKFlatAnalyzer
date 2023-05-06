@@ -46,7 +46,7 @@ public:
                                                                                           n_second_axis_folded   = second_axis_folded.size()-1;
                                                                                           n_second_axis_unfolded = second_axis_unfolded.size()-1;
 
-                                                                                          bin_name = "2D_"+(string)first_axis_var_name+"_"+(string)second_axis_var_name;
+                                                                                          var_name = "["+(string)first_axis_var_name+":"+(string)second_axis_var_name+"]";
         }
 
         /*
@@ -62,13 +62,13 @@ public:
         */
         
         int n_first_axis_folded;
-        const vector<double> first_axis_folded;
         int n_first_axis_unfolded;
+        const vector<double> first_axis_folded;
         const vector<double> first_axis_unfolded;
         
         int n_second_axis_folded;
-        const vector<double> second_axis_folded;
         int n_second_axis_unfolded;
+        const vector<double> second_axis_folded;
         const vector<double> second_axis_unfolded;
         
         bool use_first_axis_uf;
@@ -76,9 +76,10 @@ public:
         bool use_second_axis_uf;
         bool use_second_axis_of;
         
-        string bin_name;
+        string var_name;
         const char* first_axis_var_name;
         const char* second_axis_var_name;
+
         const char* first_axis_folded_bin_name;
         const char* first_axis_unfolded_bin_name;
         const char* second_axis_folded_bin_name;
@@ -93,9 +94,11 @@ public:
         else write_bins=false;
     }
     
-    void fill_unfold_hists(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode);
-    void fill_unfold_response_matrixs(TString channelname, TString pre, TString suf, Particle* l0, Particle* l1, Particle* unfolded_l0, Particle* unfolded_l1, map<TString,double> reco_weights, map<TString,double> gen_weights,
-                          const TUnfoldParameter& par); // response matrix,
+    TUnfoldBinning* get_bin_pointer(TString channelname, const TUnfoldParameter& par, const TUnfold_Bin mode);
+    void fill_unfold_hists(TString channelname, TString pre, TString suf, 
+            Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode, const TString tunfold_prefix = "");
+    void fill_unfold_response_matrixs(TString channelname, TString pre, TString suf,
+            Particle* l0, Particle* l1, Particle* unfolded_l0, Particle* unfolded_l1, map<TString,double> reco_weights, map<TString,double> gen_weights, const TUnfoldParameter& par, const TString tunfold_prefix=""); // response matrix,
     
     void fill_unfold_hist(TString hname, Double_t value, map<TString,double> weights, TUnfoldBinning* bin_pointer = nullptr, bool is_2D = true);
     void fill_unfold_hist(TString hname, Double_t value, Double_t weight, TUnfoldBinning* bin_pointer = nullptr, bool is_2D = true);
@@ -112,7 +115,7 @@ public:
     
     private :
    
-    map<TString, tuple<TUnfoldBinning*, TUnfoldBinning*>> map_tunfoldbins;
+    map<TString, TUnfoldBinning*> map_tunfoldbins;
     bool write_bins=false;
 };
     

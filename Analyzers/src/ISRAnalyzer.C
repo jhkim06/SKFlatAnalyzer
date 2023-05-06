@@ -125,12 +125,12 @@ void ISRAnalyzer::executeEventGen(){
             map_weight[""]=p.w.lumiweight*p.w.zptweight; // TODO check which gen lepton used to get weight
             
             if (dipt < 3000 && dimass > 15 && dimass < 3000) {
-                fill_unfold_hists(p.prefix, "woLepCut_"+p.hprefix, p.suffix,
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  map_weight, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::unfolded_bin);
-                fill_unfold_hists(p.prefix, "woLepCut_"+p.hprefix, p.suffix,
+                                  map_weight, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::unfolded_bin, "fullphase_");
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
                                   (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  map_weight, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::unfolded_bin);
+                                  map_weight, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::unfolded_bin, "fullphase_");
             }
         }
     }
@@ -296,12 +296,12 @@ void ISRAnalyzer::FillHists(Parameter& p){
                                              p.weightmap, pgen.weightmap, *tunfold_2D_mass_pt_bin_parameter);
             } else {
                 // fake DY events
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake", // hprefix = "fake"
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix, 
                                   (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                  p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::folded_bin);
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix+"_fake", // hprefix = "fake"
+                                  p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::folded_bin, "fake_");
+                fill_unfold_hists(p.prefix, p.hprefix, p.suffix, 
                                   (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                  p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::folded_bin);
+                                  p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::folded_bin, "fake_");
             }
         }
         // reco level

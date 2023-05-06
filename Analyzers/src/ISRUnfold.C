@@ -36,42 +36,28 @@ bool ISRUnfold::is_same_bin(TString channelname, TString pre,
 }
 
 void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
-                                  Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode){
+                                  Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldParameter& par, const TUnfold_Bin mode, const TString tunfold_prefix){
 
     TLorentzVector dilepton = (*l0) + (*l1);
     double dimass = dilepton.M();
     double dipt = dilepton.Pt();
 
     double index{-1};
-    TUnfoldBinning* bin_pointer = nullptr;
 
     // get desired bin definition
-    string full_bin_name = (string)channelname+(string)pre+par.bin_name;
-    std::map<TString, tuple<TUnfoldBinning*, TUnfoldBinning*>>::iterator mapit = map_tunfoldbins.find(full_bin_name);
-    
-    if (mapit != map_tunfoldbins.end()){  // bin definiton exists
-        if (mode == TUnfold_Bin::folded_bin) bin_pointer = get<0>(map_tunfoldbins[full_bin_name]);
-        else if (mode == TUnfold_Bin::unfolded_bin) bin_pointer = get<1>(map_tunfoldbins[full_bin_name]);
-    }
-    else{
-        // create bin definition TODO make function to create bin definition
-        TUnfoldBinning* unfolded_bin = new TUnfoldBinning("unfolded");
-        TUnfoldBinning* folded_bin = new TUnfoldBinning("folded");
+    string full_var_name = (string)channelname+(string)pre+par.var_name;
+    string full_bin_name;
 
-        unfolded_bin->AddAxis(par.first_axis_var_name, par.n_first_axis_unfolded, par.first_axis_unfolded.data(), par.use_first_axis_uf, par.use_first_axis_of);
-        folded_bin  ->AddAxis(par.first_axis_var_name, par.n_first_axis_folded, par.first_axis_folded.data(), par.use_first_axis_uf, par.use_first_axis_of);
-        
-        // for 2D, add the second axis
-        if(par.is_2D){
-        unfolded_bin->AddAxis(par.second_axis_var_name, par.n_second_axis_unfolded, par.second_axis_unfolded.data(), par.use_second_axis_uf, par.use_second_axis_of);
-        folded_bin->  AddAxis(par.second_axis_var_name, par.n_second_axis_folded, par.second_axis_folded.data(), par.use_second_axis_uf, par.use_second_axis_of);
-        }
-        
-        map_tunfoldbins[full_bin_name] = make_tuple(folded_bin, unfolded_bin);
-
-        if (mode == TUnfold_Bin::folded_bin) bin_pointer = get<0>(map_tunfoldbins[full_bin_name]);
-        else if (mode == TUnfold_Bin::unfolded_bin) bin_pointer = get<1>(map_tunfoldbins[full_bin_name]);
+    if (mode == TUnfold_Bin::folded_bin){
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_folded_bin_name+":"+(string)par.second_axis_folded_bin_name+"]";
+        else full_bin_name = "_["+(string)par.first_axis_folded_bin_name+"]";
     }
+    else if (mode == TUnfold_Bin::unfolded_bin){
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+":"+(string)par.second_axis_unfolded_bin_name+"]";
+        else full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"]";
+    }
+
+    TUnfoldBinning* bin_pointer = get_bin_pointer(channelname, par, mode);
     
     if(par.is_2D == true){
         if (bin_pointer->GetDistributionAxisLabel(0) == "dipt"){
@@ -98,15 +84,60 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
         }
     }
     
-    string bin_prefix;
-    if (mode == TUnfold_Bin::folded_bin) bin_prefix = "folded";
-    else if (mode == TUnfold_Bin::unfolded_bin) bin_prefix = "unfolded";
     // check dimension of bin   
-    fill_unfold_hist(channelname+pre+par.bin_name+"_"+bin_prefix+suf, index, weights, bin_pointer, par.is_2D);
+    string tunfold_hist_prefix="[tunfold:"+(string)tunfold_prefix+"hist]_"; // TODO add tunfold_prefix_option
+    fill_unfold_hist(channelname+pre+tunfold_hist_prefix+par.var_name+full_bin_name+suf, index, weights, bin_pointer, par.is_2D);
+}
+
+TUnfoldBinning* ISRUnfold::get_bin_pointer(TString channelname, const TUnfoldParameter& par, const TUnfold_Bin mode) {
+
+    TUnfoldBinning* bin_pointer = nullptr; 
+
+    string full_var_name = (string)channelname+par.var_name;
+    string full_bin_name;
+
+    if (mode == TUnfold_Bin::folded_bin){
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_folded_bin_name+":"+(string)par.second_axis_folded_bin_name+"]";
+        else full_bin_name = "_["+(string)par.first_axis_folded_bin_name+"]";
+    }
+    else if (mode == TUnfold_Bin::unfolded_bin){
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+":"+(string)par.second_axis_unfolded_bin_name+"]";
+        else full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"]";
+    }
+
+    // find bin and get pointer
+    std::map<TString, TUnfoldBinning*>::iterator mapit = map_tunfoldbins.find(full_var_name+full_bin_name);
+    
+    if (mapit != map_tunfoldbins.end()){  // bin definiton exists
+        bin_pointer = map_tunfoldbins[full_var_name+full_bin_name];
+    }
+    else{
+        const string tunfold_bin_name = full_var_name+full_bin_name;
+        // create bin definition 
+        TUnfoldBinning* bin = new TUnfoldBinning(tunfold_bin_name.c_str());
+
+        if (mode == TUnfold_Bin::folded_bin){
+            bin->AddAxis(par.first_axis_var_name, par.n_first_axis_folded, par.first_axis_folded.data(), par.use_first_axis_uf, par.use_first_axis_of);
+        } else {
+            bin->AddAxis(par.first_axis_var_name, par.n_first_axis_unfolded, par.first_axis_unfolded.data(), par.use_first_axis_uf, par.use_first_axis_of);
+        }
+        // for 2D, add the second axis
+        if(par.is_2D){
+            if (mode == TUnfold_Bin::folded_bin){
+                bin->AddAxis(par.second_axis_var_name, par.n_second_axis_folded, par.second_axis_folded.data(), par.use_second_axis_uf, par.use_second_axis_of);
+            } else {
+                bin->AddAxis(par.second_axis_var_name, par.n_second_axis_unfolded, par.second_axis_unfolded.data(), par.use_second_axis_uf, par.use_second_axis_of);
+            }
+        }
+        
+        map_tunfoldbins[full_var_name+full_bin_name] = bin; // FIXME [dimass:dipt]_[folded_nominal:folded_nominal], [dimass:dipt]_[folded_extended:folded_nominal]
+        bin_pointer = map_tunfoldbins[full_var_name+full_bin_name];
+    }
+    return bin_pointer;
 }
 
 void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, TString suf,
-                                             Particle* l0, Particle* l1, Particle* unfolded_l0, Particle* unfolded_l1, map<TString,double> reco_weights, map<TString,double> gen_weights, const TUnfoldParameter& par)
+                                             Particle* l0, Particle* l1, Particle* unfolded_l0, Particle* unfolded_l1, map<TString,double> reco_weights, map<TString,double> gen_weights, const TUnfoldParameter& par, const TString tunfold_prefix)
 {
 
     TLorentzVector dilepton_folded=(*l0)+(*l1);
@@ -117,34 +148,19 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
     double dimass_unfolded = dilepton_unfolded.M();
     double dipt_unfolded = dilepton_unfolded.Pt();
     
-    TUnfoldBinning* bin_pointer_folded = nullptr;
-    TUnfoldBinning* bin_pointer_unfolded = nullptr;
-    
-    string full_bin_name = (string)channelname+(string)pre+par.bin_name;
-    std::map<TString, tuple<TUnfoldBinning*, TUnfoldBinning*>>::iterator mapit = map_tunfoldbins.find(full_bin_name);
-    
-    if (mapit != map_tunfoldbins.end()){  // bin definiton exists
-        bin_pointer_folded=get<0>(map_tunfoldbins[full_bin_name]);
-        bin_pointer_unfolded=get<1>(map_tunfoldbins[full_bin_name]);
-    }
-    else {
-        // create bin definition
-        TUnfoldBinning* unfolded_bin = new TUnfoldBinning("unfolded"); // TODO get bin name from bin parameter
-        TUnfoldBinning* folded_bin = new TUnfoldBinning("folded");
+    string full_var_name = (string)channelname+(string)pre+par.var_name;
+    string full_folded_bin_name;
+    string full_unfolded_bin_name;
 
-        unfolded_bin->AddAxis(par.first_axis_var_name, par.n_first_axis_unfolded, par.first_axis_unfolded.data(), par.use_first_axis_uf, par.use_first_axis_of);
-        folded_bin->AddAxis(par.first_axis_var_name, par.n_first_axis_folded, par.first_axis_folded.data(), par.use_first_axis_uf, par.use_first_axis_of);
-        
-        if(par.is_2D){
-        unfolded_bin->AddAxis(par.second_axis_var_name, par.n_second_axis_unfolded, par.second_axis_unfolded.data(), par.use_second_axis_uf, par.use_second_axis_of);
-        folded_bin->AddAxis(par.second_axis_var_name, par.n_second_axis_folded, par.second_axis_folded.data(), par.use_second_axis_uf, par.use_second_axis_of);
-        }
+    if(par.is_2D) full_folded_bin_name = "_["+(string)par.first_axis_folded_bin_name+":"+(string)par.second_axis_folded_bin_name+"]";
+    else full_folded_bin_name = "_["+(string)par.first_axis_folded_bin_name+"]";
 
-        map_tunfoldbins[full_bin_name] = make_tuple(folded_bin, unfolded_bin);
-        
-        bin_pointer_folded=get<0>(map_tunfoldbins[full_bin_name]);
-        bin_pointer_unfolded=get<1>(map_tunfoldbins[full_bin_name]);
-    }
+    if(par.is_2D) full_unfolded_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+":"+(string)par.second_axis_unfolded_bin_name+"]";
+    else full_unfolded_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"]";
+
+    TUnfoldBinning* bin_pointer_folded = get_bin_pointer(channelname, par, TUnfold_Bin::folded_bin); 
+    TUnfoldBinning* bin_pointer_unfolded = get_bin_pointer(channelname, par, TUnfold_Bin::unfolded_bin);
+
     
     double index_folded{-1}, index_unfolded{-1};
     if (par.is_2D == true){
@@ -162,12 +178,12 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
         const string pt_str = "dipt";
         const string mass_str = "dimass";
 
-        if (full_bin_name.find(pt_str)!=string::npos){
+        if (full_folded_bin_name.find(pt_str)!=string::npos){
 
             index_folded = dipt_folded;
             index_unfolded = dipt_unfolded;
         }
-        else if (full_bin_name.find(mass_str)!=string::npos){
+        else if (full_folded_bin_name.find(mass_str)!=string::npos){
             index_folded = dimass_folded;
             index_unfolded = dimass_unfolded;
         }
@@ -177,8 +193,8 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
         }
     }
 
-    string bin_prefix="responseM";
-    fill_unfold_response_matrix(channelname+pre+par.bin_name+"_"+bin_prefix+suf, index_folded, index_unfolded,
+    string tunfold_hist_prefix="[tunfold:"+(string)tunfold_prefix+"matrix]_";
+    fill_unfold_response_matrix(channelname+pre+tunfold_hist_prefix+par.var_name+suf, index_folded, index_unfolded,
                      reco_weights, gen_weights, bin_pointer_folded, bin_pointer_unfolded, par.is_2D);
 }
 
@@ -231,7 +247,7 @@ void ISRUnfold::WriteHist(){
     // loop over bin definition
 
     if (write_bins==true){
-        for (std::map<TString,tuple<TUnfoldBinning*, TUnfoldBinning*>>::iterator mapit = map_tunfoldbins.begin(); mapit!=map_tunfoldbins.end(); mapit++){
+        for (std::map<TString,TUnfoldBinning*>::iterator mapit = map_tunfoldbins.begin(); mapit!=map_tunfoldbins.end(); mapit++){
             
             TString this_fullname=mapit->first;
             TString this_name=this_fullname(this_fullname.Last('/')+1,this_fullname.Length());
@@ -241,8 +257,7 @@ void ISRUnfold::WriteHist(){
                 outfile->mkdir(this_suffix);
             }
             outfile->cd(this_suffix);
-            get<0>(mapit->second)->Write(this_name+"_folded_bin");
-            get<1>(mapit->second)->Write(this_name+"_unfolded_bin");
+            mapit->second->Write("[tunfold:bin]_"+ this_name);
             outfile->cd();
         }
     }
