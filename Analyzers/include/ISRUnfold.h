@@ -46,7 +46,7 @@ public:
                                                                                           n_second_axis_folded   = second_axis_folded.size()-1;
                                                                                           n_second_axis_unfolded = second_axis_unfolded.size()-1;
 
-                                                                                          var_name = "["+(string)first_axis_var_name+":"+(string)second_axis_var_name+"]";
+                                                                                          var_name = "["+(string)first_axis_var_name+"-"+(string)second_axis_var_name+"]";
         }
 
         /*

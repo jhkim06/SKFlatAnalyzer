@@ -99,6 +99,9 @@ private:
 
     TUnfoldParameter* tunfold_2D_pt_mass_extended_bin_parameter;
     TUnfoldParameter* tunfold_2D_mass_pt_extended_bin_parameter;
+
+    TUnfoldParameter* tunfold_2D_pt_mass_55_bin_parameter;
+    TUnfoldParameter* tunfold_2D_mass_pt_55_bin_parameter;
     
     //map<TString, TUnfoldParameter*> tunfold_parameters;
     

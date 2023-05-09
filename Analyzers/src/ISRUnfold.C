@@ -49,11 +49,11 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     string full_bin_name;
 
     if (mode == TUnfold_Bin::folded_bin){
-        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_folded_bin_name+":"+(string)par.second_axis_folded_bin_name+"]";
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_folded_bin_name+"-"+(string)par.second_axis_folded_bin_name+"]";
         else full_bin_name = "_["+(string)par.first_axis_folded_bin_name+"]";
     }
     else if (mode == TUnfold_Bin::unfolded_bin){
-        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+":"+(string)par.second_axis_unfolded_bin_name+"]";
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"-"+(string)par.second_axis_unfolded_bin_name+"]";
         else full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"]";
     }
 
@@ -85,7 +85,7 @@ void ISRUnfold::fill_unfold_hists(TString channelname, TString pre, TString suf,
     }
     
     // check dimension of bin   
-    string tunfold_hist_prefix="[tunfold:"+(string)tunfold_prefix+"hist]_"; // TODO add tunfold_prefix_option
+    string tunfold_hist_prefix="[tunfold-"+(string)tunfold_prefix+"hist]_"; // TODO add tunfold_prefix_option
     fill_unfold_hist(channelname+pre+tunfold_hist_prefix+par.var_name+full_bin_name+suf, index, weights, bin_pointer, par.is_2D);
 }
 
@@ -97,11 +97,11 @@ TUnfoldBinning* ISRUnfold::get_bin_pointer(TString channelname, const TUnfoldPar
     string full_bin_name;
 
     if (mode == TUnfold_Bin::folded_bin){
-        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_folded_bin_name+":"+(string)par.second_axis_folded_bin_name+"]";
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_folded_bin_name+"-"+(string)par.second_axis_folded_bin_name+"]";
         else full_bin_name = "_["+(string)par.first_axis_folded_bin_name+"]";
     }
     else if (mode == TUnfold_Bin::unfolded_bin){
-        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+":"+(string)par.second_axis_unfolded_bin_name+"]";
+        if(par.is_2D) full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"-"+(string)par.second_axis_unfolded_bin_name+"]";
         else full_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"]";
     }
 
@@ -152,10 +152,10 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
     string full_folded_bin_name;
     string full_unfolded_bin_name;
 
-    if(par.is_2D) full_folded_bin_name = "_["+(string)par.first_axis_folded_bin_name+":"+(string)par.second_axis_folded_bin_name+"]";
+    if(par.is_2D) full_folded_bin_name = "_["+(string)par.first_axis_folded_bin_name+"-"+(string)par.second_axis_folded_bin_name+"]";
     else full_folded_bin_name = "_["+(string)par.first_axis_folded_bin_name+"]";
 
-    if(par.is_2D) full_unfolded_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+":"+(string)par.second_axis_unfolded_bin_name+"]";
+    if(par.is_2D) full_unfolded_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"-"+(string)par.second_axis_unfolded_bin_name+"]";
     else full_unfolded_bin_name = "_["+(string)par.first_axis_unfolded_bin_name+"]";
 
     TUnfoldBinning* bin_pointer_folded = get_bin_pointer(channelname, par, TUnfold_Bin::folded_bin); 
@@ -193,8 +193,9 @@ void ISRUnfold::fill_unfold_response_matrixs(TString channelname, TString pre, T
         }
     }
 
-    string tunfold_hist_prefix="[tunfold:"+(string)tunfold_prefix+"matrix]_";
-    fill_unfold_response_matrix(channelname+pre+tunfold_hist_prefix+par.var_name+suf, index_folded, index_unfolded,
+    string tunfold_hist_prefix="[tunfold-"+(string)tunfold_prefix+"matrix]_";
+    //fill_unfold_hist(channelname+pre+tunfold_hist_prefix+par.var_name+full_bin_name+suf, index, weights, bin_pointer, par.is_2D);
+    fill_unfold_response_matrix(channelname+pre+tunfold_hist_prefix+par.var_name+full_folded_bin_name+full_unfolded_bin_name+suf, index_folded, index_unfolded,
                      reco_weights, gen_weights, bin_pointer_folded, bin_pointer_unfolded, par.is_2D);
 }
 
@@ -257,7 +258,7 @@ void ISRUnfold::WriteHist(){
                 outfile->mkdir(this_suffix);
             }
             outfile->cd(this_suffix);
-            mapit->second->Write("[tunfold:bin]_"+ this_name);
+            mapit->second->Write("[tunfold-bin]_"+ this_name);
             outfile->cd();
         }
     }
