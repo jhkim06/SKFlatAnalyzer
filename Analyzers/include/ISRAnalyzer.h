@@ -29,6 +29,7 @@ const vector<double> mass_window_mm = {40, 64, 81, 101, 200, 320, 1000};
 const vector<double> mass_window_ee = {50, 64, 81, 101, 200, 320, 1000};
 const vector<double> mass_window_an026 = {40, 76, 106, 170, 350, 1000};
 const vector<double> mass_window = {55., 64., 81., 101., 200., 320., 1000.};
+const vector<double> mass_window_5 = {55., 64., 81., 101., 200., 1000.};
 
 const vector<double> pt_window = {0, 100};
 const vector<double> pt_extended_window = {0., 1000.};  
@@ -102,7 +103,9 @@ private:
 
     TUnfoldParameter* tunfold_2D_pt_mass_55_bin_parameter;
     TUnfoldParameter* tunfold_2D_mass_pt_55_bin_parameter;
-    
+
+    TUnfoldParameter* tunfold_2D_pt_mass_5_windows_bin_parameter;
+    TUnfoldParameter* tunfold_2D_mass_pt_5_windows_bin_parameter;
     //map<TString, TUnfoldParameter*> tunfold_parameters;
     
 };
