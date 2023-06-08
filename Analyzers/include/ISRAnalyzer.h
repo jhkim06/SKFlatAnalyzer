@@ -106,8 +106,8 @@ private:
 
     TUnfoldParameter* tunfold_2D_pt_mass_5_windows_bin_parameter;
     TUnfoldParameter* tunfold_2D_mass_pt_5_windows_bin_parameter;
-    //map<TString, TUnfoldParameter*> tunfold_parameters;
-    
+
+    map<TString, map<TString, TUnfoldParameter*>> tunfold_2D_parameters;
 };
 
 #endif
