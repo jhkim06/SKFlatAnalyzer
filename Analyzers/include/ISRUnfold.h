@@ -135,6 +135,7 @@ public:
             map<TString,double> reco_weights, map<TString,double> gen_weights, TString reco_phase_name="", TString gen_phase_name=""); // response matrix,
     void fill_unfold_response_matrix(Parameter &p, map<TString,double> reco_weights, map<TString,double> gen_weights);
     void fill_unfold_response_matrix(Parameter &p, TString suf, Double_t reco_weight, Double_t gen_weight);
+    void fill_1d_response_matrixs(Parameter &p, TString folded_bin_name, TString unfolded_bin_name, TString suf, Double_t reco_weight, Double_t gen_weight);
     
     virtual void WriteHist();
 

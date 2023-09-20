@@ -189,10 +189,54 @@ void ISRUnfold::fill_unfold_response_matrix(Parameter &p, TString suf, Double_t 
             this_hist->Fill(unfolded_index, folded_index, reco_weight);
             this_hist->Fill(unfolded_index, 0., gen_weight-reco_weight); // bin zero for 2D 
 
-            // create matrix for 1D hists
-            // option: wheter to use TUnfoldBinning 
+            fill_1d_response_matrixs(p, folded_bin_name, unfolded_bin_name, suf, reco_weight, gen_weight); 
         }
     }
+}
+
+void ISRUnfold::fill_1d_response_matrixs(Parameter &p, TString folded_bin_name, TString unfolded_bin_name, 
+        TString suf, Double_t reco_weight, Double_t gen_weight) {
+
+    TUnfoldBinning* folded_bin = map_folded_bins[folded_bin_name];
+
+    vector<double> folded_first_axis_edges = convert_to_vector(folded_bin->GetDistributionBinning(0));
+    string first_axis_var = string(folded_bin->GetDistributionAxisLabel(0));
+    vector<double> second_axis_edges = convert_to_vector(folded_bin->GetDistributionBinning(1));  // TODO ensure the smae second axis with unfolded bin
+    string second_axis_var = string(folded_bin->GetDistributionAxisLabel(1));
+
+    TUnfoldBinning* unfolded_bin = map_unfolded_bins[unfolded_bin_name];
+    vector<double> unfolded_first_axis_edges = convert_to_vector(unfolded_bin->GetDistributionBinning(0));
+
+    // dipt_[reco__fine_O-window_v1_UO]_[gen_dRp1__fine_O-window_v1_UO]_dimass_55to64
+    for (unsigned int i = 0; i < second_axis_edges.size()-1; i++) {
+        string low_mass = to_string(second_axis_edges.at(i));   
+        string high_mass = to_string(second_axis_edges.at(i+1));
+        low_mass = low_mass.substr(0, low_mass.find('.') + 1);  
+        high_mass = high_mass.substr(0, high_mass.find('.') + 1);
+        double folded_second_axis_value = get_value(TUnfoldBin::folded_bin, second_axis_var);
+        double unfolded_second_axis_value = get_value(TUnfoldBin::unfolded_bin, second_axis_var);
+
+        if (folded_second_axis_value >= second_axis_edges.at(i) && folded_second_axis_value < second_axis_edges.at(i+1) && 
+                unfolded_second_axis_value >= second_axis_edges.at(i) && unfolded_second_axis_value >= second_axis_edges.at(i)) {
+
+            double folded_first_axis_value = get_value(TUnfoldBin::folded_bin, first_axis_var);
+            double unfolded_first_axis_value = get_value(TUnfoldBin::unfolded_bin, first_axis_var);
+            vector<string> folded_matchs = get_reg_matchs(string(folded_bin_name)); 
+            vector<string> unfolded_matchs = get_reg_matchs(string(unfolded_bin_name)); 
+            string hname = string(p.prefix) + string(p.hprefix) + first_axis_var + "_[" + this->reco_phase_name + "__" + folded_matchs.at(1) + "]_[" + 
+            this->gen_phase_name + "__" + unfolded_matchs.at(1) + "]_" + second_axis_var + "_" + low_mass + "to" + high_mass;
+
+            FillHist(hname, unfolded_first_axis_value, folded_first_axis_value, reco_weight, 
+                    unfolded_first_axis_edges.size()-1, unfolded_first_axis_edges.data(), 
+                    folded_first_axis_edges.size()-1, folded_first_axis_edges.data());
+
+            // bin zero?
+            FillHist(hname, unfolded_first_axis_value, -1, gen_weight-reco_weight, 
+                    unfolded_first_axis_edges.size()-1, unfolded_first_axis_edges.data(), 
+                    folded_first_axis_edges.size()-1, folded_first_axis_edges.data());
+        }
+        
+    } 
 }
 
 void ISRUnfold::fill_unfold_hists(Parameter &p, Particle* l0, Particle* l1, map<TString,double> weights,
@@ -236,11 +280,11 @@ void ISRUnfold::fill_unfold_hist(Parameter &p, map<TString,double> weights, cons
             maphist_TH1D[hname] = this_hist;
         }
         this_hist->Fill(index, weight);
-        fill_1d_hists(p, matchs.at(1), bin, suf, weight, mode); 
+        fill_1d_hists(p, matchs.at(1), bin, suf, weight, mode);  // TODO check flag hist_on
     }
 }
 
-void ISRUnfold::fill_1d_hists(Parameter &p, string first_axis_bin_name, TUnfoldBinning* bin, TString suf, Double_t weight, const TUnfoldBin mode) {
+void ISRUnfold::fill_1d_hists(Parameter &p, string bin_name, TUnfoldBinning* bin, TString suf, Double_t weight, const TUnfoldBin mode) {
     
     vector<double> first_axis_edges = convert_to_vector(bin->GetDistributionBinning(0));
     string first_axis_var = string(bin->GetDistributionAxisLabel(0));
@@ -248,12 +292,12 @@ void ISRUnfold::fill_1d_hists(Parameter &p, string first_axis_bin_name, TUnfoldB
     string second_axis_var = string(bin->GetDistributionAxisLabel(1));
 
     string phase_name = get_phase_name(mode);
-    for (unsigned int i = 0; i < second_axis_edges.size()-1; i++){
+    for (unsigned int i = 0; i < second_axis_edges.size()-1; i++) {
         string low_mass = to_string(second_axis_edges.at(i));
         string high_mass = to_string(second_axis_edges.at(i+1));
         low_mass = low_mass.substr(0, low_mass.find('.') + 1);
         high_mass = high_mass.substr(0, high_mass.find('.') + 1);
-        string hname = string(p.prefix) + string(p.hprefix) + first_axis_var + "_[" + phase_name + "__" + first_axis_bin_name + "]_" + second_axis_var + "_" + low_mass + "to" + high_mass + 
+        string hname = string(p.prefix) + string(p.hprefix) + first_axis_var + "_[" + phase_name + "__" + bin_name + "]_" + second_axis_var + "_" + low_mass + "to" + high_mass + 
             string(p.suffix) + string(suf);
         double first_axis_value = get_value(mode, first_axis_var);
         double second_axis_value = get_value(mode, second_axis_var);

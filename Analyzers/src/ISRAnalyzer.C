@@ -604,6 +604,7 @@ ISRAnalyzer::ISRAnalyzer(){
     // [tunfold_hist]_[dipt-dimass]_[gen_acceptance__fine_O-window_v1_UO]
     //
     // dipt_[reco__fine_O]_dimass_55to64
+    // dipt_[reco__fine_O-window_v1_UO]_[gen_dRp1__fine_O-window_v1_UO]_dimass_55to64
     
     // create 2d folded bins
     create_2d_folded_bin("dipt", "fine", false, true, "dimass", "window_v1", true, true);
