@@ -21,13 +21,12 @@ void ISRAnalyzer::initializeAnalyzer(){
 }
 
 void ISRAnalyzer::executeEvent(){
-    //// FIXME some events of DYJets has nan PDF weights. I don't know why...
-    
+    // FIXME some events of DYJets has nan PDF weights. I don't know why...
     if(MCSample=="DYJets"&&!isnormal(weight_Scale->at(0))) return;
-    ///////////////// GEN level /////////////////////
+    // GEN level
     executeEventGen();
     
-    ///////////////// RECO level /////////////////////
+    // RECO level
     if(!IsDATA||DataStream.Contains("DoubleMuon")){
         executeEventWithParameter(MakeParameter("mm"));
     }
@@ -77,10 +76,12 @@ bool ISRAnalyzer::PassSelection(Parameter& p){
     p.doublemap["btagSF_lup"]=mcCorr->GetBTaggingReweight_1a(jets,jtp,"SystUpLTag");
     p.doublemap["btagSF_ldown"]=mcCorr->GetBTaggingReweight_1a(jets,jtp,"SystDownLTag");
     
+    if(n_bjet > 0) return false; // reguire bjet veto
     if(p.prefix.Contains("nbjet")&&!n_bjet) return false;
     if(p.prefix.Contains("0bjet")&&n_bjet) return false;
-    if(IsNominalRun) FillCutflow(p.prefix+p.hprefix+"cutflow","BJetCut",p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight);
-    if(IsNominalRun) FillCutflow(p.prefix+p.hprefix+"cutflow","BJetCutSF",p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.doublemap["btagSF"]);
+
+    if(IsNominalRun) FillCutflow(p.prefix+p.hprefix+"cutflow","BJetCut",p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight);
+    if(IsNominalRun) FillCutflow(p.prefix+p.hprefix+"cutflow","BJetCutSF",p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.doublemap["btagSF"]);
     
     if(!SMPAnalyzerCore::PassSelection(p)) return false;
     return true;
@@ -90,7 +91,6 @@ bool ISRAnalyzer::PassSelection(Parameter& p){
 void ISRAnalyzer::executeEventGen(){
     
     if(IsDYSample){
-        ///
         if(abs(lhe_l0.ID())!=15&&abs(lhe_l1.ID())!=15){
             Parameter p;
             if( (abs(lhe_l0.ID())==11&&abs(lhe_l1.ID())==11) || (!lhes.size()&&abs(gen_l0.PID())==11&&abs(gen_l1.PID())==11) ){
@@ -101,23 +101,13 @@ void ISRAnalyzer::executeEventGen(){
                 exit(EXIT_FAILURE);
             }
             
-            TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter;
-            TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter;
-            
-            if (p.channel.Contains("mm")) {
-                tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_mm;
-                tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_mm;
-            } else {
-                tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_ee;
-                tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_ee;
-            }
-            
             const vector<Gen> gens=GetGens();
             Gen gen_isr_parton0, gen_isr_parton1;
             Gen gen_isr_l0, gen_isr_l1; // dressed gen particles
             vector<const Gen*> added_photons;
             
             int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
+            //SMPAnalyzerCore::GetAFBGenParticles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, 3);
             TLorentzVector dilepton = gen_isr_l0 + gen_isr_l1;
             double dimass=dilepton.M();
             double dirap=dilepton.Rapidity();
@@ -125,26 +115,11 @@ void ISRAnalyzer::executeEventGen(){
             // apply only dipt and dimass cut
             
             map<TString,double> map_weight;
-            map_weight[""]=p.w.lumiweight*p.w.zptweight; // TODO check which gen lepton used to get weight
+            map_weight[""]=p.w.lumiweight; // TODO check which gen lepton used to get weight
             
-            if (dipt < 3000 && dimass > 15 && dimass < 3000) {
-
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                  (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  map_weight, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::unfolded_bin, "fullphase_");
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                  (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  map_weight, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::unfolded_bin, "fullphase_");
-
-
-                for (auto const& x : tunfold_2D_parameters) {
-                    fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                      (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                      map_weight, *tunfold_2D_parameters[x.first]["dipt-dimass"], TUnfold_Bin::unfolded_bin, "fullphase_");
-                    fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                      (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                      map_weight, *tunfold_2D_parameters[x.first]["dimass-dipt"], TUnfold_Bin::unfolded_bin, "fullphase_");
-                }
+            if (dipt < 1500 && dimass > 53 && dimass < 1500) {
+                fill_unfold_hists(p, (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                  map_weight, TUnfoldBin::unfolded_bin, "gen_acceptance");
             }
         }
     }
@@ -159,80 +134,80 @@ void ISRAnalyzer::EvalWeights(Parameter& p){
     
     if(p.weightbit&NominalWeight){
         // make function to get weight
-        p.weightmap[""]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+        p.weightmap[""]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
     }
     if(p.weightbit&SystematicWeight){
         if(!IsDATA){
-            p.weightmap["_nozptweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
-            p.weightmap["_noPUweight"]=p.w.lumiweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]; //need for AN
-            p.weightmap["_PUweight_up"]=p.w.lumiweight*p.w.PUweight_up*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
-            p.weightmap["_PUweight_down"]=p.w.lumiweight*p.w.PUweight_down*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_zptweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_noPUweight"]=p.w.lumiweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]; //need for AN
+            p.weightmap["_PUweight_up"]=p.w.lumiweight*p.w.PUweight_up*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_PUweight_down"]=p.w.lumiweight*p.w.PUweight_down*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             
-            p.weightmap["_noprefireweight"]=p.w.lumiweight*p.w.PUweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
-            p.weightmap["_prefireweight_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight_up*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
-            p.weightmap["_prefireweight_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight_down*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_noprefireweight"]=p.w.lumiweight*p.w.PUweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_prefireweight_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight_up*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_prefireweight_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight_down*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             
             //p.weightmap["_nozptweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
-            p.weightmap["_noz0weight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
-            p.weightmap["_noweakweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_noz0weight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+            p.weightmap["_noweakweight"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
             
-            p.weightmap["_nobtagSF"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF;
-            p.weightmap["_btagSF_hup"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_hup"];
-            p.weightmap["_btagSF_hdown"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_hdown"];
-            p.weightmap["_btagSF_lup"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_lup"];
-            p.weightmap["_btagSF_ldown"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_ldown"];
+            p.weightmap["_nobtagSF"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF;
+            p.weightmap["_btagSF_hup"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_hup"];
+            p.weightmap["_btagSF_hdown"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_hdown"];
+            p.weightmap["_btagSF_lup"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_lup"];
+            p.weightmap["_btagSF_ldown"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF_ldown"];
             
             for(int j=0,nj=fEff->nreplica;j<nj;j++){
                 double electronRECOSF=p.w.electronRECOSF_sys.size() ? p.w.electronRECOSF_sys[0][j] : 1.;
                 double electronIDSF=p.w.electronIDSF_sys.size() ? p.w.electronIDSF_sys[0][j] : 1.;
                 double muonIDSF=p.w.muonIDSF_sys.size() ? p.w.muonIDSF_sys[0][j] : 1.;
                 double triggerSF=p.w.triggerSF_sys.size() ? p.w.triggerSF_sys[0][j] : 1.;
-                p.weightmap[Form("_efficiencySF_stat%d",j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*electronRECOSF*electronIDSF*muonIDSF*p.w.muonISOSF*triggerSF*p.doublemap["btagSF"];
+                p.weightmap[Form("_efficiencySF_stat%d",j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*electronRECOSF*electronIDSF*muonIDSF*p.w.muonISOSF*triggerSF*p.doublemap["btagSF"];
             }
             
             for(int i=1,ni=p.w.electronRECOSF_sys.size();i<ni;i++){
                 for(int j=0,nj=p.w.electronRECOSF_sys[i].size();j<nj;j++){
-                    p.weightmap[Form("_electronRECOSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF_sys[i][j]*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+                    p.weightmap[Form("_electronRECOSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF_sys[i][j]*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
                 }
             }
             
             for(int i=1,ni=p.w.electronIDSF_sys.size();i<ni;i++){
                 for(int j=0,nj=p.w.electronIDSF_sys[i].size();j<nj;j++){
-                    p.weightmap[Form("_electronIDSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF_sys[i][j]*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+                    p.weightmap[Form("_electronIDSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF_sys[i][j]*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
                 }
             }
             
             for(int i=1,ni=p.w.muonIDSF_sys.size();i<ni;i++){
                 for(int j=0,nj=p.w.muonIDSF_sys[i].size();j<nj;j++){
-                    p.weightmap[Form("_muonIDSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF_sys[i][j]*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
+                    p.weightmap[Form("_muonIDSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF_sys[i][j]*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"];
                 }
             }
             
             for(int i=1,ni=p.w.triggerSF_sys.size();i<ni;i++){
                 for(int j=0,nj=p.w.triggerSF_sys[i].size();j<nj;j++){
-                    p.weightmap[Form("_triggerSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF_sys[i][j]*p.doublemap["btagSF"];
+                    p.weightmap[Form("_triggerSF_s%d_m%d",i,j)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF_sys[i][j]*p.doublemap["btagSF"];
                 }
             }
         }
     }
     if(p.weightbit&PDFWeight){
         for(unsigned int i=0;i<weight_Scale->size();i++){
-            p.weightmap[Form("_scalevariation%d",i)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_Scale->at(i);
+            p.weightmap[Form("_scalevariation%d",i)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_Scale->at(i);
         }
         for(unsigned int i=0;i<weight_PDF->size();i++){
-            p.weightmap[Form("_pdf%d",i)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_PDF->at(i);
+            p.weightmap[Form("_pdf%d",i)]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_PDF->at(i);
         }
         if(weight_AlphaS->size()==2){
-            p.weightmap["_alphaS_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_AlphaS->at(0);
-            p.weightmap["_alphaS_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_AlphaS->at(1);
+            p.weightmap["_alphaS_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_AlphaS->at(0);
+            p.weightmap["_alphaS_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_AlphaS->at(1);
         }
         
         if(MCSample.Contains("MiNNLO")){
-            p.weightmap["_sthw2_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_sthw2->at(0);
-            p.weightmap["_sthw2_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_sthw2->at(2);
-            p.weightmap["_largeptscales"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_largeptscales->at(0);
-            p.weightmap["_q0_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_q0->at(0);
-            p.weightmap["_q0_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.zptweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_q0->at(2);
+            p.weightmap["_sthw2_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_sthw2->at(0);
+            p.weightmap["_sthw2_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_sthw2->at(2);
+            p.weightmap["_largeptscales"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_largeptscales->at(0);
+            p.weightmap["_q0_up"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_q0->at(0);
+            p.weightmap["_q0_down"]=p.w.lumiweight*p.w.PUweight*p.w.prefireweight*p.w.z0weight*p.w.weakweight*p.w.electronRECOSF*p.w.electronIDSF*p.w.muonIDSF*p.w.muonISOSF*p.w.triggerSF*p.doublemap["btagSF"]*weight_q0->at(2);
         }
     }
     return;
@@ -258,111 +233,39 @@ void ISRAnalyzer::FillHists(Parameter& p){
     
     TLorentzVector dilepton=*p.lepton0+*p.lepton1;
     double dimass=dilepton.M();
-    double dirap=dilepton.Rapidity();
     double dipt=dilepton.Pt();
     
-    if (dipt < 3000 && dimass > 15 && dimass < 3000) {
-        
-        TUnfoldParameter* tunfold_2D_pt_mass_bin_parameter;
-        TUnfoldParameter* tunfold_2D_mass_pt_bin_parameter;
-        
-        if (p.channel.Contains("mm")) {
-            tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_mm;
-            tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_mm;
-        } else {
-            tunfold_2D_pt_mass_bin_parameter = tunfold_2D_pt_mass_bin_parameter_ee;
-            tunfold_2D_mass_pt_bin_parameter = tunfold_2D_mass_pt_bin_parameter_ee;
-        }
-        
+    if (dipt < 1500 && dimass > 53 && dimass < 1500) {
         if (IsDYSample && p.hprefix!="tau_"){
-            
             const vector<Gen> gens=GetGens();
             Gen gen_isr_parton0, gen_isr_parton1;
-            Gen gen_isr_l0, gen_isr_l1; // dressed gen particles
+            Gen gen_isr_l0, gen_isr_l1;  // dressed gen particles
+            Gen gen_bare_l0, gen_bare_l1;  // post FSR gen particles
             vector<const Gen*> added_photons;
             
             int DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_isr_l0, gen_isr_l1, PreFSR, added_photons);
-            
+            DY_index = get_DY_gen_particles(gens, gen_isr_parton0, gen_isr_parton1, gen_bare_l0, gen_bare_l1);
+            Parameter pgen=p;
+            ResetRecoWeights(pgen);
+            EvalWeights(pgen);
+
             // require the same kinematic cuts for the unfolded level as for the reco level
-            if (pass_lepton_kinematic_selections(p, &gen_isr_l0, &gen_isr_l1)) { // require the same kinematic cuts on gen level
-                
-                Parameter pgen=p;
-                ResetRecoWeights(pgen);
-                EvalWeights(pgen);
-                
+            if (pass_lepton_kinematic_selections(p, &gen_isr_l0, &gen_isr_l1)) {
                 // unfolded level
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                  (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  pgen.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::unfolded_bin);
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                  (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                  pgen.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::unfolded_bin);
-
-                
-                for (auto const& x : tunfold_2D_parameters) {
-                    fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                      (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                      pgen.weightmap, *tunfold_2D_parameters[x.first]["dipt-dimass"], TUnfold_Bin::unfolded_bin);
-                    fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                      (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                      pgen.weightmap, *tunfold_2D_parameters[x.first]["dimass-dipt"], TUnfold_Bin::unfolded_bin);
-                }
-                // response matrix
-                fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
-                                             (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                             (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                             p.weightmap, pgen.weightmap, *tunfold_2D_pt_mass_bin_parameter);
-                fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
-                                             (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                             (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                             p.weightmap, pgen.weightmap, *tunfold_2D_mass_pt_bin_parameter);
-
-                
-                for (auto const& x : tunfold_2D_parameters) {
-                    fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
-                                                 (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                                 (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                                 p.weightmap, pgen.weightmap, *tunfold_2D_parameters[x.first]["dipt-dimass"]);
-                    fill_unfold_response_matrixs(p.prefix, p.hprefix, p.suffix,
-                                                 (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                                 (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
-                                                 p.weightmap, pgen.weightmap, *tunfold_2D_parameters[x.first]["dimass-dipt"]);
-                }
+                fill_unfold_hists(p, (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                                  pgen.weightmap, TUnfoldBin::unfolded_bin, "gen_dRp1");
+                // fill response matrix
+                fill_unfold_response_matrixs(p, (Particle*)p.lepton0, (Particle*)p.lepton1, (Particle*)&gen_isr_l0, (Particle*)&gen_isr_l1,
+                        p.weightmap, pgen.weightmap, "reco", "gen_dRp1");
             } else {
                 // fake DY events
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix, 
-                                  (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                  p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::folded_bin, "fake_");
-                fill_unfold_hists(p.prefix, p.hprefix, p.suffix, 
-                                  (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                  p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::folded_bin, "fake_");
-
-                for (auto const& x : tunfold_2D_parameters) {
-                    fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                      (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                      p.weightmap, *tunfold_2D_parameters[x.first]["dipt-dimass"], TUnfold_Bin::folded_bin, "fake_");
-                    fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                                      (Particle*)p.lepton0, (Particle*)p.lepton1,
-                                      p.weightmap, *tunfold_2D_parameters[x.first]["dimass-dipt"], TUnfold_Bin::folded_bin, "fake_");
-                }
+                fill_unfold_hists(p, (Particle*)p.lepton0, (Particle*)p.lepton1,
+                                  p.weightmap, TUnfoldBin::folded_bin, "reco_fake");
             }
         }
         // reco level
-        fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                          (Particle*)p.lepton0, (Particle*)p.lepton1,
-                          p.weightmap, *tunfold_2D_pt_mass_bin_parameter, TUnfold_Bin::folded_bin);
-        fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                          (Particle*)p.lepton0, (Particle*)p.lepton1,
-                          p.weightmap, *tunfold_2D_mass_pt_bin_parameter, TUnfold_Bin::folded_bin);
-        
-        for (auto const& x : tunfold_2D_parameters) {
-            fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                              (Particle*)p.lepton0, (Particle*)p.lepton1,
-                              p.weightmap, *tunfold_2D_parameters[x.first]["dipt-dimass"], TUnfold_Bin::folded_bin);
-            fill_unfold_hists(p.prefix, p.hprefix, p.suffix,
-                              (Particle*)p.lepton0, (Particle*)p.lepton1,
-                              p.weightmap, *tunfold_2D_parameters[x.first]["dimass-dipt"], TUnfold_Bin::folded_bin);
-        }
+        fill_unfold_hists(p, (Particle*)p.lepton0, (Particle*)p.lepton1,
+                          p.weightmap, TUnfoldBin::folded_bin, "reco");
     }
 }
 
@@ -370,7 +273,6 @@ bool ISRAnalyzer::pass_lepton_kinematic_selections(const Parameter& p, Particle*
     
     TLorentzVector dilepton=*l0+*l1;
     double dimass=dilepton.M();
-    double dirap=dilepton.Rapidity();
     double dipt=dilepton.Pt();
     
     bool passed = false;
@@ -382,7 +284,7 @@ bool ISRAnalyzer::pass_lepton_kinematic_selections(const Parameter& p, Particle*
         
         if (fabs((*l0).Eta()) < eta_cut && fabs((*l1).Eta()) < eta_cut) {
             
-            if (dipt < 3000 && dimass > 15 && dimass < 3000) {
+            if (dipt < 1500 && dimass > 53 && dimass < 1500) {
                 passed = true;
             }
         }
@@ -412,7 +314,27 @@ int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen
         int mother_index  = gens.at(i).MotherIndex();
         if(mother_index == -1) continue;
         //int mother_pid = gens.at(mother_index).PID();
-        
+        /* 
+        if(gens.at(i).Status() == 1 || gens.at(i).isPromptFinalState() == true)
+        {
+            std::cout << i << "\033[1;31m pid: " << gens.at(i).PID()
+                           << " mother index: " << gens.at(i).MotherIndex()
+                           << " status: " << gens.at(i).Status()
+                           << " isPrompt: " << gens.at(i).isPrompt()
+                           << " isHardProcess: " << gens.at(i).isHardProcess()
+                           << " isPromptFinalState: " << gens.at(i).isPromptFinalState()
+                           << " Pt: " << gens.at(i).Pt()
+                           << "\033[0m" << std::endl;
+        }
+        else
+        {
+            std::cout << i << " pid: " << gens.at(i).PID() << " mother index: " << gens.at(i).MotherIndex()
+                       << " status: " << gens.at(i).Status() << " isPrompt: " << gens.at(i).isPrompt()
+                       << " isHardProcess: " << gens.at(i).isHardProcess()
+                       << " Pt: " << gens.at(i).Pt()
+                       << std::endl;
+        }
+        */
         if(gens.at(i).isHardProcess()){
             if(abs(pid) < TOP || pid == PHOTON){
                 if(parton0.IsEmpty()){
@@ -461,7 +383,7 @@ int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen
     return DY_index;
 }
 
-int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& lepton0, Gen& lepton1, int mode){
+int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& lepton0, Gen& lepton1){
     
     
     if(!IsDYSample){
@@ -511,9 +433,7 @@ int ISRAnalyzer::get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen
         }// status 1
     }// gen loop
     
-    
     int DY_index = get_DY_bare_lepton_pair(gens, leptons, lepton0, lepton1);
-    
     return DY_index;
 }
 
@@ -528,38 +448,21 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
     vector<int> DY_history;
     save_gen_history(gens, lepton0, DY_history, DY_index);
     save_gen_history(gens, lepton1, DY_history, DY_index);
+    DY_history.push_back(DY_index);
     
     Gen lepton0_temp = lepton0;
     Gen lepton1_temp = lepton1;
     
-    // loop leptons
-    int nlepton = leptons.size();
-    for(int i = 0;i < nlepton;i++){
-        if(leptons[i]->Index() == lepton0.Index() || leptons[i]->Index() == lepton1.Index()) continue;
-        for(int j = i + 1;j < nlepton;j++){
-            if(leptons[j]->Index() == lepton0.Index()||leptons[j]->Index() == lepton1.Index()) continue;
-            if(!(leptons[i]->PID()+leptons[j]->PID() == 0)) continue;
-            vector<int> history_i = TrackGenSelfHistory(*leptons[i], gens); // trackGenSelfHistory return (currentidx, motherindex)
-            vector<int> history_j = TrackGenSelfHistory(*leptons[j], gens);
-            if(history_i.at(1) == history_j.at(1)) photons.push_back(&gens[history_i.at(1)]); //
-        }
-    }
-    
+    // status 1 photons
     for(const auto photon : photons){
-        
         if(mode == DressedMode::MotherMatch || mode == DressedMode::MotherDRMatch){
-            auto it = find(DY_history.begin(), DY_history.end(), photon->MotherIndex());
+            vector<int> history_photon = TrackGenSelfHistory(*photon, gens);
+            auto it = find(DY_history.begin(), DY_history.end(), history_photon.at(1));
             // photon's mother not exist in DY history
             if(it == DY_history.end()){
                 continue;
             }
-            
-            // photon's mother is not lepton
-            if(abs(gens.at(*it).PID()) != abs(lepton0_temp.PID())){
-                continue;
-            }
         }
-        
         if(mode == DressedMode::DRMatch || mode == DressedMode::MotherDRMatch){
             if(lepton0_temp.DeltaR(*photon) < lepton1_temp.DeltaR(*photon)){
                 if(lepton0_temp.DeltaR(*photon) > dR) continue;
@@ -568,7 +471,6 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
                 if(lepton1_temp.DeltaR(*photon) > dR) continue;
             }
         }
-        
         added_photons.push_back(photon);
         
         // add gamma to the cloest lepton
@@ -578,9 +480,7 @@ int ISRAnalyzer::get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vecto
         else{
             lepton1 +=  *photon;
         }
-        
     }// loops photon
-    
     return DY_index;
 }
 
@@ -697,62 +597,20 @@ void ISRAnalyzer::print_gen_particles(const vector<Gen>& gens){
     }
 }
 
-
 ISRAnalyzer::ISRAnalyzer(){
-    
     job_number=-1;
- 
-    // 2D bin for dipt dimass
-    tunfold_2D_pt_mass_bin_parameter_mm = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window_mm, mass_window_mm,
-        false, true, true, true,
-        "dipt", "dimass",
-        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"}; 
+    // [tunfold_hist]_[dipt-dimass]_[reco__fine_O-window_v1_UO]
+    // [tunfold_hist]_[dipt-dimass]_[gen_dRp1__fine_O-window_v1_UO]
+    // [tunfold_hist]_[dipt-dimass]_[gen_acceptance__fine_O-window_v1_UO]
     
-    tunfold_2D_pt_mass_bin_parameter_ee = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window_ee, mass_window_ee,
-        false, true, true, true,
-        "dipt", "dimass",
-        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"};
+    // create 2d folded bins
+    create_2d_folded_bin("dipt", "fine", false, true, "dimass", "window_v1", true, true);
+    create_2d_folded_bin("dimass", "fine", true, true, "dipt", "window_v1", false, true);
     
-    // 2D bin for dimass dipt
-    tunfold_2D_mass_pt_bin_parameter_mm = new TUnfoldParameter{mass_bin_fine_mu, mass_bin_coarse_mu, pt_window, pt_window,
-        true, true, false, true,
-        "dimass", "dipt", 
-        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"};
-    
-    tunfold_2D_mass_pt_bin_parameter_ee = new TUnfoldParameter{mass_bin_fine_el, mass_bin_coarse_el, pt_window, pt_window,
-        true, true, false, true,
-        "dimass", "dipt", 
-        "folded_nominal", "unfolded_nominal", "folded_nominal", "unfolded_nominal"};
-
-    
-    tunfold_2D_parameters["five_mass_windows"]["dipt-dimass"] = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window_5, mass_window_5,
-        false, true, true, true,
-        "dipt", "dimass",
-        "folded_nominal", "unfolded_nominal", "folded_dimass_5_windows", "unfolded_dimass_5_windows"};
-    tunfold_2D_parameters["five_mass_windows"]["dimass-dipt"] = new TUnfoldParameter{mass_bin_fine, mass_bin_coarse, pt_window, pt_window,
-        true, true, false, true,
-        "dimass", "dipt",
-        "folded_dimass_5_windows", "unfolded_dimass_5_windows", "folded_nominal", "unfolded_nominal"};
-    
-    tunfold_2D_parameters["mass_from_55GeV"]["dipt-dimass"] = new TUnfoldParameter{pt_bin_fine, pt_bin_coarse, mass_window, mass_window,
-        false, true, true, true,
-        "dipt", "dimass",
-        "folded_nominal", "unfolded_nominal", "folded_dimass55", "unfolded_dimass55"};
-    tunfold_2D_parameters["mass_from_55GeV"]["dimass-dipt"] = new TUnfoldParameter{mass_bin_fine, mass_bin_coarse, pt_window, pt_window,
-        true, true, false, true,
-        "dimass", "dipt",
-        "folded_dimass55", "unfolded_dimass55", "folded_nominal", "unfolded_nominal"};
-    
-    tunfold_2D_parameters["extended_dipt_mass_from_55GeV"]["dipt-dimass"] = new TUnfoldParameter{pt_extended_bin_fine, pt_extended_bin_coarse, mass_window, mass_window,
-        false, true, true, true,
-        "dipt", "dimass",
-        "folded_extended", "unfolded_extended", "folded_dimass55", "unfolded_dimass55"};
-    
-    tunfold_2D_parameters["extended_dipt_mass_from_55GeV"]["dimass-dipt"] = new TUnfoldParameter{mass_bin_fine, mass_bin_coarse, pt_extended_window, pt_extended_window,
-        true, true, false, true,
-        "dimass", "dipt",
-        "folded_dimass55", "unfolded_dimass55", "folded_extended", "unfolded_extended"};
-
+    // create 2d unfolded bins
+    create_2d_unfolded_bin("dipt", "coarse", false, true, "dimass", "window_v1", true, true);
+    create_2d_unfolded_bin("dipt", "fine", false, true, "dimass", "window_v1", true, true);
+    create_2d_unfolded_bin("dimass", "coarse", true, true, "dipt", "window_v1", false, true);
 }
 ISRAnalyzer::~ISRAnalyzer(){
     //DeleteCosThetaWeight();
