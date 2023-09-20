@@ -5,6 +5,7 @@
 #include <regex>
 #include "SMPAnalyzerCore.h"
 #include "TUnfoldBinning.h"
+#include "TVectorD.h"
 
 enum class TUnfoldBin{
     folded_bin=0, 
@@ -116,17 +117,19 @@ public:
     void set_pt_mass(const TUnfoldBin mode, double pt, double mass); 
     void set_phase_name(const TUnfoldBin mode, string name);
     string get_phase_name(const TUnfoldBin mode);
+    double get_value(const TUnfoldBin mode, string var_name);
 
     void create_2d_folded_bin(string axis1_name, string bin_name, bool axis1_uf, bool axis1_of, 
-            string axis2_name, string window_name, bool axis2_uf, bool axis2_of);
+            string axis2_name, string window_name, bool axis2_uf, bool axis2_of, bool hist_on=false);
     void create_2d_unfolded_bin(string axis1_name, string bin_name, bool axis1_uf, bool axis1_of, 
-            string axis2_name, string window_name, bool axis2_uf, bool axis2_of);
+            string axis2_name, string window_name, bool axis2_uf, bool axis2_of, bool hist_on=false);
 
     int get_bin_index(TUnfoldBinning* bin, const TUnfoldBin mode) const;
 
     void fill_unfold_hists(Parameter &p, Particle* l0, Particle* l1, map<TString,double> weights, const TUnfoldBin mode, TString phase_name = "");
     void fill_unfold_hist(Parameter &p, map<TString,double> weights, const TUnfoldBin mode);
     void fill_unfold_hist(Parameter &p, TString suf, Double_t weight, const TUnfoldBin mode);
+    void fill_1d_hists(Parameter &p, string first_axis_bin_name, TUnfoldBinning* bin, TString suf, Double_t weight, const TUnfoldBin mode);
 
     void fill_unfold_response_matrixs(Parameter &p, Particle* l0, Particle* l1, Particle* unfolded_l0, Particle* unfolded_l1,
             map<TString,double> reco_weights, map<TString,double> gen_weights, TString reco_phase_name="", TString gen_phase_name=""); // response matrix,
@@ -143,8 +146,10 @@ public:
     double reco_pt, reco_mass;
     double gen_pt, gen_mass;
     string reco_phase_name, gen_phase_name;
-    map<TString, TUnfoldBinning*> map_folded_bins; 
+    map<TString, TUnfoldBinning*> map_folded_bins;
     map<TString, TUnfoldBinning*> map_unfolded_bins; 
+    map<TString, bool> map_folded_bin_flags; 
+    map<TString, bool> map_unfolded_bin_flags; 
     bool write_bins=false;
 };
     
