@@ -7,7 +7,6 @@ ISRUnfold::~ISRUnfold(){
 }
 
 vector<string> get_reg_matchs(string source_string, string re_string="\\[([^\\]]+)\\]"){
-    //std::regex re("\\[([^\\]]+)\\]");
     std::regex re(re_string);
     std::smatch match;
     vector<string> matchs;
@@ -19,29 +18,77 @@ vector<string> get_reg_matchs(string source_string, string re_string="\\[([^\\]]
     return matchs;
 }
 
-void ISRUnfold::set_pt_mass(const TUnfoldBin mode, double pt, double mass) {
-    if (mode == TUnfoldBin::unfolded_bin){
-        this->gen_pt = pt;
-        this->gen_mass = mass;
-    } else {
-        this->reco_pt = pt;
-        this->reco_mass = mass;
+void ISRUnfold::set_base_parameter(Parameter& p, bool set_reco) {
+    this->p = p;
+    if (set_reco) {
+        set_reco_leptons(*p.lepton0, *p.lepton1);
+        set_reco_weights(p.weightmap);
     }
 }
 
-void ISRUnfold::set_phase_name(const TUnfoldBin mode, string name) {
-    if (mode == TUnfoldBin::unfolded_bin){
+void ISRUnfold::set_reco_weights(map<TString,double>& weights) {
+    reco_weights = weights;
+}
+
+void ISRUnfold::set_gen_weights(map<TString,double>& weights) {
+    gen_weights = weights;
+}
+
+void ISRUnfold::set_reco_leptons(Particle& l0, Particle& l1) {
+    reco_isr_l0 = l0;
+    reco_isr_l1 = l1;
+
+    reco_dipt = (l0 + l1).Pt();
+    reco_dimass = (l0 + l1).M();
+}
+
+void ISRUnfold::set_gen_leptons(Particle& l0, Particle& l1) {
+    gen_isr_l0 = l0;
+    gen_isr_l1 = l1;
+
+    gen_dipt = (l0 + l1).Pt();
+    gen_dimass = (l0 + l1).M();
+}
+
+void ISRUnfold::set_phase_name(const UnfoldSpaceName mode, string name) {
+    if (mode == UnfoldSpaceName::unfolded){
         this->gen_phase_name = name;
     } else {
         this->reco_phase_name = name;
     }
 }
 
-string ISRUnfold::get_phase_name(const TUnfoldBin mode) {
-    if (mode == TUnfoldBin::unfolded_bin){
+string ISRUnfold::get_phase_name(const UnfoldSpaceName mode) {
+    if (mode == UnfoldSpaceName::unfolded){
         return this->gen_phase_name;
     } else {
         return this->reco_phase_name;
+    }
+}
+
+bool ISRUnfold::pass_lepton_cuts(const UnfoldSpaceName mode) {
+
+    Particle* lepton0;
+    Particle* lepton1;
+    if (mode == UnfoldSpaceName::unfolded) {
+        lepton0 = &gen_isr_l0;
+        lepton1 = &gen_isr_l1;
+    } else {
+        lepton0 = &reco_isr_l0;
+        lepton1 = &reco_isr_l1;
+    }
+
+    bool pass_lepton_pt_cut = ((*lepton0).Pt() > p.c.lepton0pt && (*lepton1).Pt() > p.c.lepton1pt) || 
+        ((*lepton1).Pt() > p.c.lepton0pt && (*lepton0).Pt() > p.c.lepton1pt);
+    double eta_cut = 0;
+    if (this->p.channel.Contains("mm")) eta_cut = 2.4;
+    if (this->p.channel.Contains("ee")) eta_cut = 2.5;
+    bool pass_lepton_eta_cut = (fabs((*lepton0).Eta()) < eta_cut) && (fabs((*lepton1).Eta()) < eta_cut);
+
+    if (pass_lepton_pt_cut && pass_lepton_eta_cut) {
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -53,68 +100,97 @@ vector<double> convert_to_vector(const TVectorD* edges){
     return edges_vector;
 }
 
-string ISRUnfold::TUnfoldParameter::get_bin_name(const TUnfoldBin mode) const{
+ISRUnfoldBin* ISRUnfold::create_2d_unfold_bin(string axis1_name, string bin_name, bool axis1_uf, bool axis1_of,
+        string axis2_name, string window_name, bool axis2_uf, bool axis2_of) {
 
-    string bin_name;
-    bin_name = this->var_name + "_[" + this->first_axis_bin_name + "-" + this->second_axis_bin_name + "]";
-    return bin_name;
+    ISRUnfoldBin* tunfold_par = new ISRUnfoldBin(axis1_name, axis2_name, bin_name, window_name,
+            axis1_uf, axis1_of, axis2_uf, axis2_of);
+
+    string full_bin_name = tunfold_par->get_bin_name();
+    map_unfold_2d_bins[full_bin_name] = tunfold_par->create_2d_tunfold_bin();
+
+    // return parameter and use it for unfold setup
+    return tunfold_par;
 }
 
-TUnfoldBinning* ISRUnfold::TUnfoldParameter::create_2d_tunfold_bin(const TUnfoldBin mode) const {
+ISRUnfoldBin* ISRUnfold::create_1d_unfold_bin(string axis_name, string bin_name) {
 
-    string bin_name = this->get_bin_name(mode);  // [dipt-dimass]_[fine-window_v1]
-    TUnfoldBinning* bin = new TUnfoldBinning((bin_name).c_str());
-    bin->AddAxis(
-            this->first_axis_var_name.c_str(),
-            this->n_first_axis,
-            this->first_axis.data(),
-            this->use_first_axis_uf,
-            this->use_first_axis_of);
-    bin->AddAxis(
-            this->second_axis_var_name.c_str(),
-            this->n_second_axis,
-            this->second_axis.data(),
-            this->use_second_axis_uf,
-            this->use_second_axis_of);
-    return bin;
+    ISRUnfoldBin* tunfold_par = new ISRUnfoldBin(axis_name, bin_name);
+
+    string full_bin_name = tunfold_par->get_bin_name();
+    map_unfold_1d_bins[full_bin_name] = tunfold_par->create_1d_bin();
+
+    return tunfold_par;
 }
 
-void ISRUnfold::create_2d_folded_bin(string axis1_name, string bin_name, bool axis1_uf, bool axis1_of,
-        string axis2_name, string window_name, bool axis2_uf, bool axis2_of, bool hist_on) {
-    // create TUnfoldParameter
-    const vector<double>& axis1 = bins.at(axis1_name).at(bin_name);
-    const vector<double>& axis2 = windows.at(axis2_name).at(window_name);
+void ISRUnfold::create_2d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2,
+        double dipt_low_cut, double dipt_high_cut, 
+        double dimass_low_cut, double dimass_high_cut) {
 
-    TUnfoldParameter* tunfold_par = new TUnfoldParameter(axis1, axis2, axis1_uf, axis1_of, axis2_uf, axis2_of,
-            axis1_name, axis2_name, bin_name, window_name);
-    string full_bin_name = tunfold_par->get_bin_name(TUnfoldBin::folded_bin);
-    map_folded_bins[full_bin_name] = tunfold_par->create_2d_tunfold_bin(TUnfoldBin::folded_bin);
-    map_folded_bin_flags[full_bin_name] = hist_on;
+    // parameter
+    ISRUnfoldSetUp* unfold_setup = new ISRUnfoldSetUp(bin1, bin2, 
+            dipt_low_cut, dipt_high_cut, 
+            dimass_low_cut, dimass_high_cut);
+    // add to vector
+    unfold_setups.push_back(unfold_setup);
 }
 
-void ISRUnfold::create_2d_unfolded_bin(string axis1_name, string bin_name, bool axis1_uf, bool axis1_of,
-        string axis2_name, string window_name, bool axis2_uf, bool axis2_of, bool hist_on) {
-    const vector<double>& axis1 = bins.at(axis1_name).at(bin_name);
-    const vector<double>& axis2 = windows.at(axis2_name).at(window_name);
+void ISRUnfold::create_1d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2,  
+        double dipt_low_cut, double dipt_high_cut,
+        vector<double>& dimass_cuts) {
 
-    TUnfoldParameter* tunfold_par = new TUnfoldParameter(axis1, axis2, axis1_uf, axis1_of, axis2_uf, axis2_of,
-            axis1_name, axis2_name, bin_name, window_name);
-    string full_bin_name = tunfold_par->get_bin_name(TUnfoldBin::unfolded_bin);
-    map_unfolded_bins[full_bin_name] = tunfold_par->create_2d_tunfold_bin(TUnfoldBin::unfolded_bin);
-    map_unfolded_bin_flags[full_bin_name] = hist_on;
+    ISRUnfoldSetUp* unfold_setup = new ISRUnfoldSetUp(bin1, bin2,
+            dipt_low_cut, dipt_high_cut,
+            dimass_cuts);
+
+    unfold_setups.push_back(unfold_setup);
 }
 
-int ISRUnfold::get_bin_index(TUnfoldBinning* bin, const TUnfoldBin mode) const{
+void ISRUnfold::fill_unfold_matrixs() {
+   
+   for (const auto unfold_setup: unfold_setups){
+       fill_unfold_response_matrix(unfold_setup);
+   }
+}
+
+void ISRUnfold::fill_unfold_fake_hists() {
+   
+   for (const auto unfold_setup: unfold_setups){
+       fill_unfold_fake_hist(unfold_setup);
+   }
+}
+
+void ISRUnfold::fill_unfold_acceptance_hists() {
+   
+   for (const auto unfold_setup: unfold_setups){
+       fill_unfold_acceptance_hist(unfold_setup);
+   }
+}
+
+void ISRUnfold::fill_unfold_reco_hists() {
+   
+   for (const auto unfold_setup: unfold_setups){
+       fill_unfold_reco_hist(unfold_setup);
+   }
+}
+
+void ISRUnfold::fill_unfold_gen_hists() {
+   
+   for (const auto unfold_setup: unfold_setups){
+       fill_unfold_gen_hist(unfold_setup);
+   }
+}
+
+int ISRUnfold::get_bin_index(TUnfoldBinning* bin, const UnfoldSpaceName mode) const{
 
     double pt, mass;
-    if (mode == TUnfoldBin::unfolded_bin){
-        pt = this->gen_pt;
-        mass = this->gen_mass;
+    if (mode == UnfoldSpaceName::unfolded){
+        pt = this->gen_dipt;
+        mass = this->gen_dimass;
     } else {
-        pt = this->reco_pt;
-        mass = this->reco_mass;
+        pt = this->reco_dipt;
+        mass = this->reco_dimass;
     }
-
     int index = -999;
     if (bin->GetDistributionAxisLabel(0)=="dipt"){
         index=bin->GetGlobalBinNumber(pt, mass);
@@ -125,206 +201,204 @@ int ISRUnfold::get_bin_index(TUnfoldBinning* bin, const TUnfoldBin mode) const{
     return index;
 }
 
-double ISRUnfold::get_value(const TUnfoldBin mode, string var_name) {
+double ISRUnfold::get_value(const UnfoldSpaceName mode, string var_name) {
 
-    if (mode == TUnfoldBin::unfolded_bin){
+    if (mode == UnfoldSpaceName::unfolded){
         if (var_name == "dipt") {
-            return this->gen_pt;
+            return this->gen_dipt;
         } else if (var_name == "dimass") {
-            return this->gen_mass;
+            return this->gen_dimass;
         }
     } else {
         if (var_name == "dipt") {
-            return this->reco_pt;
+            return this->reco_dipt;
         } else if (var_name == "dimass") {
-            return this->reco_mass;
+            return this->reco_dimass;
         }
     }
 }
 
-void ISRUnfold::fill_unfold_response_matrixs(Parameter &p, Particle* l0, Particle* l1, Particle* unfolded_l0, Particle* unfolded_l1, 
-        map<TString,double> reco_weights, map<TString,double> gen_weights, TString reco_phase_name, TString gen_phase_name)
+void ISRUnfold::fill_unfold_response_matrix(ISRUnfoldSetUp* unfold_setup)
 {
-
-    TLorentzVector dilepton_folded=(*l0)+(*l1);
-    set_pt_mass(TUnfoldBin::folded_bin, dilepton_folded.Pt(), dilepton_folded.M()); 
-    set_phase_name(TUnfoldBin::folded_bin, string(reco_phase_name));
-
-    TLorentzVector dilepton_unfolded=(*unfolded_l0)+(*unfolded_l1);
-    set_pt_mass(TUnfoldBin::unfolded_bin, dilepton_unfolded.Pt(), dilepton_unfolded.M()); 
-    set_phase_name(TUnfoldBin::unfolded_bin, string(gen_phase_name));
-
-    fill_unfold_response_matrix(p, reco_weights, gen_weights);
-}
-
-void ISRUnfold::fill_unfold_response_matrix(Parameter &p, map<TString,double> reco_weights, map<TString,double> gen_weights)
-{
-    // TODO check case where only gen_weights vary
-    for (const auto& [suffix,reco_weight]:reco_weights){
-        fill_unfold_response_matrix(p, suffix, reco_weight, gen_weights[suffix]);
+    bool pass_reco_gen = unfold_setup->pass_reco_gen_cuts(reco_dipt, reco_dimass, gen_dipt, gen_dimass);
+    bool pass_gen_lepton_cuts = pass_lepton_cuts(UnfoldSpaceName::unfolded);  // TODO ensure reco lepton cuts passed
+    if (pass_reco_gen && pass_gen_lepton_cuts){ 
+        // TODO check case where only gen_weights vary
+        for (const auto& [suffix,reco_weight]:reco_weights){
+            fill_unfold_response_matrix(unfold_setup, suffix, reco_weight, gen_weights[suffix]);
+        }
+    }
+    else{
+        return;
     }
 }
 
-void ISRUnfold::fill_unfold_response_matrix(Parameter &p, TString suf, Double_t reco_weight, Double_t gen_weight)
+void ISRUnfold::fill_unfold_response_matrix(ISRUnfoldSetUp* unfold_setup, TString suf, Double_t reco_weight, Double_t gen_weight)
 {
-    // loop over map_folded_bin and map_unfolded_bin 
-    for (const auto& [unfolded_bin_name, unfolded_bin]: map_unfolded_bins) {
-        for (const auto& [folded_bin_name, folded_bin]: map_folded_bins) {
-            int unfolded_index = get_bin_index(unfolded_bin, TUnfoldBin::unfolded_bin);
-            int folded_index = get_bin_index(folded_bin, TUnfoldBin::folded_bin);
-            vector<string> unfolded_matchs = get_reg_matchs(string(unfolded_bin_name));
-            vector<string> folded_matchs = get_reg_matchs(string(folded_bin_name));
+    // get bin names
+    string unfolded_bin_name = unfold_setup->get_bin_name(UnfoldSpaceName::unfolded);
+    string folded_bin_name = unfold_setup->get_bin_name(UnfoldSpaceName::folded);
+    bool is_2d = unfold_setup->is_2d_unfold();
 
-            if (unfolded_matchs.at(0) != folded_matchs.at(0)) continue; 
-
-            string hname = string(p.prefix) + string(p.hprefix) + "[tunfold-matrix]_" + "[" + unfolded_matchs.at(0) + "]_[" +
-                this->reco_phase_name + "__" + folded_matchs.at(1) + "]_[" + 
-                this->gen_phase_name + "__" + unfolded_matchs.at(1) + "]" + string(p.suffix) + string(suf);
-            TH2D *this_hist = GetHist2D(hname);
-            if (!this_hist){
-                this_hist = (TH2D*) TUnfoldBinning::CreateHistogramOfMigrations(unfolded_bin, folded_bin, hname.data());
-                this_hist->SetDirectory(NULL); 
-                maphist_TH2D[hname] = this_hist;
-            }
-            this_hist->Fill(unfolded_index, folded_index, reco_weight);
-            this_hist->Fill(unfolded_index, 0., gen_weight-reco_weight); // bin zero for 2D 
-
-            fill_1d_response_matrixs(p, folded_bin_name, unfolded_bin_name, suf, reco_weight, gen_weight); 
-        }
-    }
-}
-
-void ISRUnfold::fill_1d_response_matrixs(Parameter &p, TString folded_bin_name, TString unfolded_bin_name, 
-        TString suf, Double_t reco_weight, Double_t gen_weight) {
-
-    TUnfoldBinning* folded_bin = map_folded_bins[folded_bin_name];
-
-    vector<double> folded_first_axis_edges = convert_to_vector(folded_bin->GetDistributionBinning(0));
-    string first_axis_var = string(folded_bin->GetDistributionAxisLabel(0));
-    vector<double> second_axis_edges = convert_to_vector(folded_bin->GetDistributionBinning(1));  // TODO ensure the smae second axis with unfolded bin
-    string second_axis_var = string(folded_bin->GetDistributionAxisLabel(1));
-
-    TUnfoldBinning* unfolded_bin = map_unfolded_bins[unfolded_bin_name];
-    vector<double> unfolded_first_axis_edges = convert_to_vector(unfolded_bin->GetDistributionBinning(0));
-
-    // dipt_[reco__fine_O-window_v1_UO]_[gen_dRp1__fine_O-window_v1_UO]_dimass_55to64
-    for (unsigned int i = 0; i < second_axis_edges.size()-1; i++) {
-        string low_mass = to_string(second_axis_edges.at(i));   
-        string high_mass = to_string(second_axis_edges.at(i+1));
-        low_mass = low_mass.substr(0, low_mass.find('.') + 1);  
-        high_mass = high_mass.substr(0, high_mass.find('.') + 1);
-        double folded_second_axis_value = get_value(TUnfoldBin::folded_bin, second_axis_var);
-        double unfolded_second_axis_value = get_value(TUnfoldBin::unfolded_bin, second_axis_var);
-
-        if (folded_second_axis_value >= second_axis_edges.at(i) && folded_second_axis_value < second_axis_edges.at(i+1) && 
-                unfolded_second_axis_value >= second_axis_edges.at(i) && unfolded_second_axis_value >= second_axis_edges.at(i)) {
-
-            double folded_first_axis_value = get_value(TUnfoldBin::folded_bin, first_axis_var);
-            double unfolded_first_axis_value = get_value(TUnfoldBin::unfolded_bin, first_axis_var);
-            vector<string> folded_matchs = get_reg_matchs(string(folded_bin_name)); 
-            vector<string> unfolded_matchs = get_reg_matchs(string(unfolded_bin_name)); 
-            string hname = string(p.prefix) + string(p.hprefix) + first_axis_var + "_[" + this->reco_phase_name + "__" + folded_matchs.at(1) + "]_[" + 
-            this->gen_phase_name + "__" + unfolded_matchs.at(1) + "]_" + second_axis_var + "_" + low_mass + "to" + high_mass;
-
-            FillHist(hname, unfolded_first_axis_value, folded_first_axis_value, reco_weight, 
-                    unfolded_first_axis_edges.size()-1, unfolded_first_axis_edges.data(), 
-                    folded_first_axis_edges.size()-1, folded_first_axis_edges.data());
-
-            // bin zero?
-            FillHist(hname, unfolded_first_axis_value, -1, gen_weight-reco_weight, 
-                    unfolded_first_axis_edges.size()-1, unfolded_first_axis_edges.data(), 
-                    folded_first_axis_edges.size()-1, folded_first_axis_edges.data());
-        }
+    if (is_2d) {
+        TUnfoldBinning* unfolded_bin = map_unfold_2d_bins[unfolded_bin_name];
+        TUnfoldBinning* folded_bin = map_unfold_2d_bins[folded_bin_name];
+        vector<string> unfolded_matchs = get_reg_matchs(unfolded_bin_name);
+        vector<string> folded_matchs = get_reg_matchs(folded_bin_name);
         
-    } 
-}
-
-void ISRUnfold::fill_unfold_hists(Parameter &p, Particle* l0, Particle* l1, map<TString,double> weights,
-        const TUnfoldBin mode, TString phase_name){
-
-    TLorentzVector dilepton = (*l0) + (*l1);
-
-    set_pt_mass(mode, dilepton.Pt(), dilepton.M());
-    set_phase_name(mode, string(phase_name));
-    fill_unfold_hist(p, weights, mode);
-}
-
-void ISRUnfold::fill_unfold_hist(Parameter &p, map<TString,double> weights, const TUnfoldBin mode){
-    // loop over weights
-    for (const auto& [suffix,weight]:weights){
-        fill_unfold_hist(p, suffix, weight, mode);
-    }
-}
-
- void ISRUnfold::fill_unfold_hist(Parameter &p, TString suf, Double_t weight, const TUnfoldBin mode){
-    std::map<TString, TUnfoldBinning*>* map_bin;
-    if (mode == TUnfoldBin::unfolded_bin) {
-        map_bin = &map_unfolded_bins;
+        // get matrix_name from UnfoldSet
+        string hname = string(p.prefix) + string(p.hprefix) + "[tunfold-matrix]_" + "[" + unfolded_matchs.at(0) + "]_[" +
+            this->reco_phase_name + "__" + folded_matchs.at(1) + "]_[" + 
+            this->gen_phase_name + "__" + unfolded_matchs.at(1) + "]" + string(p.suffix) + string(suf);
+        
+        TH2D *this_hist = GetHist2D(hname);
+        if (!this_hist){
+            this_hist = (TH2D*) TUnfoldBinning::CreateHistogramOfMigrations(unfolded_bin, folded_bin, hname.data());
+            this_hist->SetDirectory(NULL); 
+            maphist_TH2D[hname] = this_hist;
+        }
+        // get index from UnfoldSet
+        int unfolded_index = get_bin_index(unfolded_bin, UnfoldSpaceName::unfolded);
+        int folded_index = get_bin_index(folded_bin, UnfoldSpaceName::folded);
+        this_hist->Fill(unfolded_index, folded_index, reco_weight);
+        this_hist->Fill(unfolded_index, 0., gen_weight-reco_weight); // bin zero for 2D 
     }
     else {
-        map_bin = &map_folded_bins;
+        string var_name = unfold_setup->get_var_name();
+        string second_var_range;
+        if (var_name == "dipt") 
+            second_var_range = unfold_setup->get_passed_winow_name(UnfoldSpaceName::folded);  // either mode will work
+        else // dimass  
+            second_var_range = unfold_setup->get_dipt_range();
+        string hname = string(p.prefix) + string(p.hprefix) + var_name +
+             "_[" + this->reco_phase_name + "__" + unfold_setup->get_raw_bin_name(UnfoldSpaceName::folded) + "]_[" +
+             this->gen_phase_name + "__" + unfold_setup->get_raw_bin_name(UnfoldSpaceName::unfolded) + "]_" + 
+             unfold_setup->get_second_axis_var_name() + "_" + second_var_range + string(p.suffix) + string(suf);
+        
+        double value_unfolded = get_value(UnfoldSpaceName::unfolded, var_name);
+        double value_folded = get_value(UnfoldSpaceName::folded, var_name); 
+
+        FillHist(hname, value_unfolded, value_folded, reco_weight, 
+                map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
+                map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
+
+        // bin zero?
+        FillHist(hname, value_unfolded, -1, gen_weight-reco_weight, 
+                map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
+                map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
     }
-    // loop over bin map and fill
-    for (const auto& [bin_name, bin]: *map_bin){
-        // bin_name: [dipt-dimass]_[unfolded_fine_O-window_v1_UO]
-        // "[" + dipt-dimass + "]_[" + level + "__unfolded_fine_O-window_v1_UO + "]" 
-        vector<string> matchs = get_reg_matchs(string(bin_name));
-        int index = get_bin_index(bin, mode);
-        string phase_name = get_phase_name(mode);
+}
+
+void ISRUnfold::fill_unfold_fake_hist(ISRUnfoldSetUp* unfold_setup) {
+    // require passing reco and not passing gen cut
+    bool pass_reco = unfold_setup->pass_reco_cuts(reco_dipt, reco_dimass);
+    bool pass_fake = unfold_setup->is_fake(reco_dipt, reco_dimass, gen_dipt, gen_dimass);
+    bool pass_gen_lepton_cuts = pass_lepton_cuts(UnfoldSpaceName::unfolded);
+    if (pass_reco && (pass_fake || !pass_gen_lepton_cuts)){
+        string original_reco_phase_name = reco_phase_name;
+        reco_phase_name += "_fake";
+        fill_unfold_hist(unfold_setup, UnfoldSpaceName::folded);
+        reco_phase_name = original_reco_phase_name;
+    }
+    else {
+        return;
+    }
+}
+
+void ISRUnfold::fill_unfold_acceptance_hist(ISRUnfoldSetUp* unfold_setup) {
+    bool pass_gen = unfold_setup->pass_gen_cuts(gen_dipt, gen_dimass);
+    if (pass_gen){
+        string original_gen_phase_name = gen_phase_name;
+        gen_phase_name += "_acceptance";
+        fill_unfold_hist(unfold_setup, UnfoldSpaceName::unfolded);
+        gen_phase_name = original_gen_phase_name;
+    }
+    else {
+        return;
+    }
+}
+
+
+void ISRUnfold::fill_unfold_reco_hist(ISRUnfoldSetUp* unfold_setup) {
+    bool pass_reco = unfold_setup->pass_reco_cuts(reco_dipt, reco_dimass);
+    if (pass_reco){
+        fill_unfold_hist(unfold_setup, UnfoldSpaceName::folded);
+    }
+    else {
+        return;
+    }
+}
+
+void ISRUnfold::fill_unfold_gen_hist(ISRUnfoldSetUp* unfold_setup) {
+    bool pass_reco = unfold_setup->pass_reco_cuts(reco_dipt, reco_dimass);
+    bool pass_gen = unfold_setup->pass_gen_cuts(gen_dipt, gen_dimass);
+    bool pass_gen_lepton_cuts = pass_lepton_cuts(UnfoldSpaceName::unfolded);
+    if (pass_reco && (pass_gen && pass_gen_lepton_cuts)){
+        fill_unfold_hist(unfold_setup, UnfoldSpaceName::unfolded);
+    }
+    else {
+        return;
+    }
+}
+
+void ISRUnfold::fill_unfold_hist(ISRUnfoldSetUp* unfold_setup, const UnfoldSpaceName mode){
+    map<TString,double>* weights;
+    if (mode == UnfoldSpaceName::unfolded) {
+        weights = &gen_weights;
+    } else {
+        weights = &reco_weights;
+    }
+    for (const auto& [suffix,weight]:*weights){
+        fill_unfold_hist(unfold_setup, suffix, weight, mode);
+    }
+}
+
+ void ISRUnfold::fill_unfold_hist(ISRUnfoldSetUp* unfold_setup, TString suf, Double_t weight, const UnfoldSpaceName mode){
+    // bin_name: [dipt-dimass]_[unfolded_fine_O-window_v1_UO]
+    // "[" + dipt-dimass + "]_[" + level + "__unfolded_fine_O-window_v1_UO + "]" 
+    bool is_2d = unfold_setup->is_2d_unfold();
+    string bin_name = unfold_setup->get_bin_name(mode);
+    string phase_name = get_phase_name(mode);
+
+    if (is_2d){
+        // make hist name
+        vector<string> matchs = get_reg_matchs(bin_name);
         string hname = string(p.prefix) + string(p.hprefix) + "[tunfold-hist]_" + "[" + matchs.at(0) + "]_[" + 
             phase_name + "__" + matchs.at(1) + "]" + string(p.suffix) + string(suf);
+
+        // fill hist
+        TUnfoldBinning* bin = map_unfold_2d_bins[bin_name];
         TH1D *this_hist = GetHist1D(hname);
         if (!this_hist){
             this_hist = (TH1D*) bin->CreateHistogram(hname.data());
             this_hist->SetDirectory(NULL);
             maphist_TH1D[hname] = this_hist;
         }
+
+        int index = get_bin_index(bin, mode);
         this_hist->Fill(index, weight);
-        fill_1d_hists(p, matchs.at(1), bin, suf, weight, mode);  // TODO check flag hist_on
+    }
+    else {
+        // dipt_[reco__fine_O]_[cuts]_dimass_55.0to64.0 
+        string var_name = unfold_setup->get_var_name();
+        string second_var_range;
+        if (var_name == "dipt")
+            second_var_range = unfold_setup->get_passed_winow_name(mode);
+        else // dimass
+            second_var_range = unfold_setup->get_dipt_range();
+        string hname = string(p.prefix) + string(p.hprefix) + var_name + 
+            "_[" + phase_name + "__" + unfold_setup->get_raw_bin_name(mode) + "]_" + 
+            unfold_setup->get_second_axis_var_name() + "_" + second_var_range + string(p.suffix) + string(suf);
+        FillHist(hname, get_value(mode, var_name), weight, map_unfold_1d_bins[bin_name].size()-1, map_unfold_1d_bins[bin_name].data());
     }
 }
-
-void ISRUnfold::fill_1d_hists(Parameter &p, string bin_name, TUnfoldBinning* bin, TString suf, Double_t weight, const TUnfoldBin mode) {
-    
-    vector<double> first_axis_edges = convert_to_vector(bin->GetDistributionBinning(0));
-    string first_axis_var = string(bin->GetDistributionAxisLabel(0));
-    vector<double> second_axis_edges = convert_to_vector(bin->GetDistributionBinning(1));
-    string second_axis_var = string(bin->GetDistributionAxisLabel(1));
-
-    string phase_name = get_phase_name(mode);
-    for (unsigned int i = 0; i < second_axis_edges.size()-1; i++) {
-        string low_mass = to_string(second_axis_edges.at(i));
-        string high_mass = to_string(second_axis_edges.at(i+1));
-        low_mass = low_mass.substr(0, low_mass.find('.') + 1);
-        high_mass = high_mass.substr(0, high_mass.find('.') + 1);
-        string hname = string(p.prefix) + string(p.hprefix) + first_axis_var + "_[" + phase_name + "__" + bin_name + "]_" + second_axis_var + "_" + low_mass + "to" + high_mass + 
-            string(p.suffix) + string(suf);
-        double first_axis_value = get_value(mode, first_axis_var);
-        double second_axis_value = get_value(mode, second_axis_var);
-        if (second_axis_value >= second_axis_edges.at(i) && second_axis_value < second_axis_edges.at(i+1))
-            FillHist(hname, first_axis_value, weight, first_axis_edges.size()-1, first_axis_edges.data());
-    }
-}
-
 void ISRUnfold::WriteHist(){
 
     SMPAnalyzerCore::WriteHist();
     outfile->cd();
     // loop over bin definition
     if (write_bins==true){
-        for (std::map<TString,TUnfoldBinning*>::iterator mapit = map_folded_bins.begin(); mapit!=map_folded_bins.end(); mapit++){
-            TString this_fullname=mapit->first;
-            TString this_name=this_fullname(this_fullname.Last('/')+1,this_fullname.Length());
-            TString this_suffix=this_fullname(0,this_fullname.Last('/'));
-            TDirectory *dir = outfile->GetDirectory(this_suffix);
-            if(!dir){
-                outfile->mkdir(this_suffix);
-            }
-            outfile->cd(this_suffix);
-            mapit->second->Write("[tunfold-bin]_"+ this_name);
-            outfile->cd();
-        }
-        for (std::map<TString,TUnfoldBinning*>::iterator mapit = map_unfolded_bins.begin(); mapit!=map_unfolded_bins.end(); mapit++){
+        for (std::map<TString,TUnfoldBinning*>::iterator mapit = map_unfold_2d_bins.begin(); mapit!=map_unfold_2d_bins.end(); mapit++){
             TString this_fullname=mapit->first;
             TString this_name=this_fullname(this_fullname.Last('/')+1,this_fullname.Length());
             TString this_suffix=this_fullname(0,this_fullname.Last('/'));
