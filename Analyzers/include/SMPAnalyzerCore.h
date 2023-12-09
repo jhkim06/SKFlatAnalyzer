@@ -4,10 +4,13 @@
 #include <tuple>
 #include "AnalyzerCore.h"
 #include "TRegexp.h"
+#include "TPRegexp.h"
+#include "TProfile.h"
 #include "RoccoR.h"
 #include "Aepcor.h"
 #include "TH4D.h"
 #include "EfficiencyTool.h"
+#include "RocPFProb.h"
 
 class SMPAnalyzerCore : public AnalyzerCore {
 
@@ -25,6 +28,8 @@ public:
     TString prefix,hprefix,suffix;
     vector<TString> triggers;
     vector<Gen> gens;
+    vector<Jet> jets;
+    vector<Jet> bjets;
     vector<Muon> muons;
     vector<Electron> electrons;
     vector<Muon> amuons;
@@ -40,7 +45,7 @@ public:
     int weightbit=NominalWeight;
     TString option;
     struct Key{
-      TString electronRECOSF,electronIDSF,electronIDSF2,muonIDSF,muonISOSF;
+      TString electronRECOSF,electronIDSF,electronIDSF2,muonTrackingSF,muonRECOSF,muonIDSF,muonISOSF,DZSF;
       vector<TString> triggerSF;
     };
     struct Weight{
@@ -49,18 +54,24 @@ public:
       double prefireweight=1,prefireweight_up=1,prefireweight_down=1;
       double z0weight=1;
       double zptweight=1;
+      double topptweight=1;
       double weakweight=1;
       double electronRECOSF=1;
       vector<vector<double>> electronRECOSF_sys;
       double electronIDSF=1;
       vector<vector<double>> electronIDSF_sys;
+      double muonTrackingSF=1;
+      vector<vector<double>> muonTrackingSF_sys;
+      double muonRECOSF=1;
+      vector<vector<double>> muonRECOSF_sys;
       double muonIDSF=1;
       vector<vector<double>> muonIDSF_sys;
       double muonISOSF=1;
       vector<vector<double>> muonISOSF_sys;
-      double triggerSF=1,triggerSF_up=1,triggerSF_down=1;
+      double triggerSF=1,triggerSF_up=1,triggerSF_down=1,triggerSF_mode1=1,triggerSF_interpolation=1;
       vector<vector<double>> triggerSF_sys;
       double CFSF=1,CFSF_up=1,CFSF_down=1;
+      double btagSF=1,btagSF_hup=1,btagSF_hdown=1,btagSF_lup=1,btagSF_ldown=1;
     };
     struct Cut{
       double lepton0pt=-1,lepton1pt=-1;
@@ -104,6 +115,9 @@ public:
 
   std::map< TString, TH4D* > maphist_TH4D;
   TH4D* GetHist4D(TString histname);
+  void FillProfile(TString histname,
+		   Double_t value_x, Double_t value_y, Double_t weight,
+		   Int_t n_binx, Double_t x_min, Double_t x_max);
   void FillHist(TString histname,
                 Double_t value_x, Double_t value_y, Double_t value_z, Double_t value_u,
                 Double_t weight,
@@ -201,18 +215,20 @@ public:
   double GetDYWeakWeight(double mass);
 
   void SetupFakeRate();
+  double GetFakeTF(Parameter& p,TString option="",int sys=0);
   double GetFakeRate(const Lepton *lep);
   double GetFakeRate(Lepton::Flavour flavour,double eta,double pt);
   void DeleteFakeRate();
   TH2* fFakeRate_electron=NULL;
   TH2* fFakeRate_muon=NULL;
+  map<TString,TH2*> fFakeTF;
 
   EfficiencyTool* fEff=NULL;
   void SetupEfficiency();
   void DeleteEfficiency();
-  double GetLeptonTriggerSF(TString triggerSF_key,const vector<Lepton*>& leps,int set,int mem);
-  double GetLeptonTriggerORSF(TString triggerSF_key0,TString triggerSF_key1,const vector<Lepton*>& leps,int set,int mem);
-  double GetDileptonTriggerSF(TString SFhistkey0,TString SFhistkey1,const vector<Lepton*>& leps,int set,int mem);
+  double GetLeptonTriggerSF(TString triggerSF_key,const vector<Lepton*>& leps,int set,int mem,TString option="");
+  double GetLeptonTriggerORSF(const Parameter& p,const vector<Lepton*>& leps,int set,int mem,TString option="");
+  double GetDileptonTriggerSF(TString SFhistkey0,TString SFhistkey1,TString DZSFhistkey,const vector<Lepton*>& leps,int set,int mem,TString option="");
 
   void PrintGens(const vector<Gen>& gens);
   static double GetBinContentUser(TH1* hist,double valx,int sys);
@@ -231,6 +247,8 @@ public:
     return a;
   }
   
+  // Top pt weight
+  double GetTopPtReweight2(const std::vector<Gen>& gens);
 
   // ZptWeight
   void SetupZptWeight();
@@ -242,7 +260,26 @@ public:
   vector<TF1*> fZptWeightM;
   TAxis* fZptWeightMaxis=NULL;
 
+  // L1PrefiringWeight
+  virtual void SetupL1PrefiringWeight();
+  virtual void DeleteL1PrefiringWeight();
+  virtual double getPrefiringRateEcal(double eta, double pt, TH2* h_prefmap, int sys, int mode=0) const;
+  virtual double getPrefiringRatePhoton(double eta, double pt, int sys, int mode=0) const;
+  virtual double getPrefiringRateJet(double eta, double pt, int sys, int mode=0) const;
+  virtual double getPrefiringRateMuon(double eta, double phi, double pt, int sys) const;
+  virtual double GetL1PrefiringWeight(int mode=0) const;
+  RocPFProb* rocpfprob=NULL;
+  TH2* fFGPP=NULL;
+  TH2* fFGPM=NULL;
+  TH2* fL1Prefiring_photon=NULL;
+  TH2* fL1Prefiring_jet=NULL;
+  TF1* fL1Prefiring_muon[12]={};
+ 
+
+
   bool IsDYSample=false;
+  bool IsTTSample=false;
+  bool IsTTLLSample=false;
   Event _event;
   double reductionweight=1;
   vector<LHE> lhes;
@@ -257,6 +294,12 @@ public:
   std::vector<Electron> ElectronEnergyCorrection(const vector<Electron>& electrons,int set=0,int member=0);
 
   double GetPFMET_T1Smear() const;
+  TString GetSkimName() const;
+
+  bool PassSLT1(const Lepton* lep) const;
+  bool PassSLT2(const Lepton* lep) const;
+  bool PassDLT1(const Lepton* lep) const;
+  bool PassDLT2(const Lepton* lep) const;
 
   SMPAnalyzerCore();
   ~SMPAnalyzerCore();

@@ -3,7 +3,11 @@ OBJDIR = obj
 DEPDIR = $(OBJDIR)/dep
 SRCDIR = src
 INCDIR = include
+<<<<<<< HEAD
 ADDITIONAL_ROOTMAPLIBRARY = -rml libAnalyzerTools.so -rml libGEScaleSyst.so -rml libDataFormats.so -rml libTH4D.so -rml libTree.so -rml libUnfold.so
+=======
+ADDITIONAL_ROOTMAPLIBRARY = -rml libAnalyzerTools.so -rml libGEScaleSyst.so -rml libDataFormats.so -rml libTH4D.so -rml libTree.so
+>>>>>>> b41754bee488603100c00af78abd4918f107b979
 
 include $(SKFlat_WD)/makefile.common
 
