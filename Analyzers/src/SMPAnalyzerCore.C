@@ -1332,9 +1332,13 @@ void SMPAnalyzerCore::Parameter::SetMuonKeys(TString muID,TString muISO,vector<T
   k.muonISOSF=muISO;
   k.triggerSF=trig;
 }
+// jhkim
 void SMPAnalyzerCore::Parameter::SetLeptonPtCut(double l0pt,double l1pt){
   c.lepton0pt=l0pt;
   c.lepton1pt=l1pt;
+}
+void SMPAnalyzerCore::Parameter::SetLeptonEtaCut(double lepton_max_eta){
+  c.lepton_max_eta=lepton_max_eta;
 }
 void SMPAnalyzerCore::Parameter::SetLeptons(){
   leptons={};
@@ -1448,7 +1452,7 @@ SMPAnalyzerCore::Parameter SMPAnalyzerCore::MakeParameter(TString channel,TStrin
   }else if(p.channel=="mm"){
     p.SetMuonKeys("Muon_MediumID_trkIsoLoose","",{"Mu17Leg1_MediumID_trkIsoLoose","Mu8Leg2_MediumID_trkIsoLoose"});
     p.SetMuons(MuonMomentumCorrection(SMPGetMuons("POGMediumWithLooseTrkIso",0.0,2.4),0,0));
-    p.SetLeptonPtCut(20,10);
+    p.SetLeptonPtCut(20,10);  // 20 10
     if(GetEraShort()=="2016a"){
       p.triggers={"HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_v","HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_v","HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v","HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ_v","HLT_TkMu17_TrkIsoVVL_TkMu8_TrkIsoVVL_v","HLT_TkMu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ_v",};
     }else if(GetEraShort()=="2016b"){

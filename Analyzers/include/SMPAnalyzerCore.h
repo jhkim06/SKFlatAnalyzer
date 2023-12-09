@@ -64,6 +64,7 @@ public:
     };
     struct Cut{
       double lepton0pt=-1,lepton1pt=-1;
+      double lepton_max_eta=-1;  // jhkim
       double muon0pt=-1,muon1pt=-1;
       double electron0pt=-1,electron1pt=-1;
       double amuon0pt=-1,amuon1pt=-1;
@@ -82,6 +83,7 @@ public:
     void SetElectronKeys(TString elID,TString elID2,vector<TString> trig);
     void SetMuonKeys(TString muID,TString muISO,vector<TString> trig);
     void SetLeptonPtCut(double l0pt,double l1pt);
+    void SetLeptonEtaCut(double lepton_max_eta);
     void SetLeptons();
     void SetGens(vector<Gen> gs);
     void SetElectrons(vector<Electron> els);

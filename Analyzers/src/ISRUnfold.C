@@ -80,9 +80,8 @@ bool ISRUnfold::pass_lepton_cuts(const UnfoldSpaceName mode) {
 
     bool pass_lepton_pt_cut = ((*lepton0).Pt() > p.c.lepton0pt && (*lepton1).Pt() > p.c.lepton1pt) || 
         ((*lepton1).Pt() > p.c.lepton0pt && (*lepton0).Pt() > p.c.lepton1pt);
-    double eta_cut = 0;
-    if (this->p.channel.Contains("mm")) eta_cut = 2.4;
-    if (this->p.channel.Contains("ee")) eta_cut = 2.5;
+
+    double eta_cut = p.c.lepton_max_eta;
     bool pass_lepton_eta_cut = (fabs((*lepton0).Eta()) < eta_cut) && (fabs((*lepton1).Eta()) < eta_cut);
 
     if (pass_lepton_pt_cut && pass_lepton_eta_cut) {
@@ -125,20 +124,47 @@ ISRUnfoldBin* ISRUnfold::create_1d_unfold_bin(string axis_name, string bin_name)
 
 void ISRUnfold::create_2d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2,
         double dipt_low_cut, double dipt_high_cut, 
-        double dimass_low_cut, double dimass_high_cut) {
+        double dimass_low_cut, double dimass_high_cut,
+        bool turn_off_bin1, bool turn_off_bin2) {
 
     // parameter
     ISRUnfoldSetUp* unfold_setup = new ISRUnfoldSetUp(bin1, bin2, 
             dipt_low_cut, dipt_high_cut, 
-            dimass_low_cut, dimass_high_cut);
+            dimass_low_cut, dimass_high_cut,
+            turn_off_bin1, turn_off_bin2);
     // add to vector
     unfold_setups.push_back(unfold_setup);
 }
 
 void ISRUnfold::create_1d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2,  
         double dipt_low_cut, double dipt_high_cut,
-        vector<double>& dimass_cuts) {
+        vector<double>& dimass_cuts, bool turn_off_bin1, bool turn_off_bin2) {
 
+    ISRUnfoldSetUp* unfold_setup = new ISRUnfoldSetUp(bin1, bin2,
+            dipt_low_cut, dipt_high_cut,
+            dimass_cuts, turn_off_bin1, turn_off_bin2);
+
+    unfold_setups.push_back(unfold_setup);
+}
+
+void ISRUnfold::create_1d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2,  
+        double dipt_low_cut, double dipt_high_cut,
+        double dimass_low_cut, double dimass_high_cut, bool turn_off_bin1, bool turn_off_bin2) {
+
+    // make vector
+    vector<double> dimass_cuts = {dimass_low_cut, dimass_high_cut};
+    ISRUnfoldSetUp* unfold_setup = new ISRUnfoldSetUp(bin1, bin2,
+            dipt_low_cut, dipt_high_cut,
+            dimass_cuts, turn_off_bin1, turn_off_bin2);
+
+    unfold_setups.push_back(unfold_setup);
+}
+
+void ISRUnfold::create_1d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2,  
+        double dipt_low_cut, double dipt_high_cut) {
+
+    // make vector
+    vector<double> dimass_cuts = bin1->get_boundary_bin_edges();
     ISRUnfoldSetUp* unfold_setup = new ISRUnfoldSetUp(bin1, bin2,
             dipt_low_cut, dipt_high_cut,
             dimass_cuts);
@@ -146,31 +172,17 @@ void ISRUnfold::create_1d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2,
     unfold_setups.push_back(unfold_setup);
 }
 
-void ISRUnfold::fill_unfold_matrixs() {
+void ISRUnfold::fill_unfold_matrixs(bool apply_lepton_cuts) {
    
    for (const auto unfold_setup: unfold_setups){
-       fill_unfold_response_matrix(unfold_setup);
+       fill_unfold_response_matrix(unfold_setup, apply_lepton_cuts);
    }
 }
 
-void ISRUnfold::fill_unfold_fake_hists() {
+void ISRUnfold::fill_unfold_fake_hists(bool apply_lepton_cuts) {
    
    for (const auto unfold_setup: unfold_setups){
-       fill_unfold_fake_hist(unfold_setup);
-   }
-}
-
-void ISRUnfold::fill_unfold_acceptance_hists() {
-   
-   for (const auto unfold_setup: unfold_setups){
-       fill_unfold_acceptance_hist(unfold_setup);
-   }
-}
-
-void ISRUnfold::fill_unfold_reco_hists() {
-   
-   for (const auto unfold_setup: unfold_setups){
-       fill_unfold_reco_hist(unfold_setup);
+       fill_unfold_fake_hist(unfold_setup, apply_lepton_cuts);
    }
 }
 
@@ -178,6 +190,13 @@ void ISRUnfold::fill_unfold_gen_hists() {
    
    for (const auto unfold_setup: unfold_setups){
        fill_unfold_gen_hist(unfold_setup);
+   }
+}
+
+void ISRUnfold::fill_unfold_reco_hists() {
+   
+   for (const auto unfold_setup: unfold_setups){
+       fill_unfold_reco_hist(unfold_setup);
    }
 }
 
@@ -218,10 +237,11 @@ double ISRUnfold::get_value(const UnfoldSpaceName mode, string var_name) {
     }
 }
 
-void ISRUnfold::fill_unfold_response_matrix(ISRUnfoldSetUp* unfold_setup)
+void ISRUnfold::fill_unfold_response_matrix(ISRUnfoldSetUp* unfold_setup, bool apply_lepton_cuts)
 {
     bool pass_reco_gen = unfold_setup->pass_reco_gen_cuts(reco_dipt, reco_dimass, gen_dipt, gen_dimass);
     bool pass_gen_lepton_cuts = pass_lepton_cuts(UnfoldSpaceName::unfolded);  // TODO ensure reco lepton cuts passed
+    if (!apply_lepton_cuts) pass_gen_lepton_cuts = true;
     if (pass_reco_gen && pass_gen_lepton_cuts){ 
         // TODO check case where only gen_weights vary
         for (const auto& [suffix,reco_weight]:reco_weights){
@@ -282,36 +302,76 @@ void ISRUnfold::fill_unfold_response_matrix(ISRUnfoldSetUp* unfold_setup, TStrin
                 map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
                 map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
 
-        // bin zero?
+        // bin zero
         FillHist(hname, value_unfolded, -1, gen_weight-reco_weight, 
                 map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
                 map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
     }
 }
 
-void ISRUnfold::fill_unfold_fake_hist(ISRUnfoldSetUp* unfold_setup) {
+void ISRUnfold::fill_unfold_fake_hist(ISRUnfoldSetUp* unfold_setup, bool apply_lepton_cuts) {
     // require passing reco and not passing gen cut
     bool pass_reco = unfold_setup->pass_reco_cuts(reco_dipt, reco_dimass);
     bool pass_fake = unfold_setup->is_fake(reco_dipt, reco_dimass, gen_dipt, gen_dimass);
     bool pass_gen_lepton_cuts = pass_lepton_cuts(UnfoldSpaceName::unfolded);
+    if (!apply_lepton_cuts) pass_gen_lepton_cuts = true;
+
     if (pass_reco && (pass_fake || !pass_gen_lepton_cuts)){
         string original_reco_phase_name = reco_phase_name;
-        reco_phase_name += "_fake";
+        reco_phase_name += "_" + gen_phase_name + "_fake";
         fill_unfold_hist(unfold_setup, UnfoldSpaceName::folded);
         reco_phase_name = original_reco_phase_name;
+
+        // fail1: pass_fake && pass_gen_lepton_cuts
+        if (pass_fake && pass_gen_lepton_cuts){
+            string original_reco_phase_name = reco_phase_name;
+            reco_phase_name += "_" + gen_phase_name + "_fake_fail1";
+            fill_unfold_hist(unfold_setup, UnfoldSpaceName::folded);
+            reco_phase_name = original_reco_phase_name;
+        }
+        // fail2: pass_fake && !pass_gen_lepton_cuts
+        if (pass_fake && !pass_gen_lepton_cuts){
+            string original_reco_phase_name = reco_phase_name;
+            reco_phase_name += "_" + gen_phase_name + "_fake_fail2";
+            fill_unfold_hist(unfold_setup, UnfoldSpaceName::folded);
+            reco_phase_name = original_reco_phase_name;
+        }
+        // fail3: !pass_fake && !pass_gen_lepton_cuts
+        if (!pass_fake && !pass_gen_lepton_cuts){
+            string original_reco_phase_name = reco_phase_name;
+            reco_phase_name += "_" + gen_phase_name + "_fake_fail3";
+            fill_unfold_hist(unfold_setup, UnfoldSpaceName::folded);
+            reco_phase_name = original_reco_phase_name;
+        }
     }
     else {
         return;
     }
 }
 
-void ISRUnfold::fill_unfold_acceptance_hist(ISRUnfoldSetUp* unfold_setup) {
+void ISRUnfold::fill_unfold_gen_hist(ISRUnfoldSetUp* unfold_setup) {
     bool pass_gen = unfold_setup->pass_gen_cuts(gen_dipt, gen_dimass);
     if (pass_gen){
         string original_gen_phase_name = gen_phase_name;
         gen_phase_name += "_acceptance";
         fill_unfold_hist(unfold_setup, UnfoldSpaceName::unfolded);
         gen_phase_name = original_gen_phase_name;
+
+        bool pass_gen_lepton_cuts = pass_lepton_cuts(UnfoldSpaceName::unfolded);
+        if (pass_gen_lepton_cuts){
+            string original_gen_phase_name = gen_phase_name;
+            gen_phase_name += "_efficiency";
+            fill_unfold_hist(unfold_setup, UnfoldSpaceName::unfolded);
+            gen_phase_name = original_gen_phase_name;
+
+            if (_event.PassTrigger(p.triggers))
+            {
+                string original_gen_phase_name = gen_phase_name;
+                gen_phase_name += "_trigger";
+                fill_unfold_hist(unfold_setup, UnfoldSpaceName::unfolded);
+                gen_phase_name = original_gen_phase_name;
+            }
+        }
     }
     else {
         return;
@@ -323,18 +383,6 @@ void ISRUnfold::fill_unfold_reco_hist(ISRUnfoldSetUp* unfold_setup) {
     bool pass_reco = unfold_setup->pass_reco_cuts(reco_dipt, reco_dimass);
     if (pass_reco){
         fill_unfold_hist(unfold_setup, UnfoldSpaceName::folded);
-    }
-    else {
-        return;
-    }
-}
-
-void ISRUnfold::fill_unfold_gen_hist(ISRUnfoldSetUp* unfold_setup) {
-    bool pass_reco = unfold_setup->pass_reco_cuts(reco_dipt, reco_dimass);
-    bool pass_gen = unfold_setup->pass_gen_cuts(gen_dipt, gen_dimass);
-    bool pass_gen_lepton_cuts = pass_lepton_cuts(UnfoldSpaceName::unfolded);
-    if (pass_reco && (pass_gen && pass_gen_lepton_cuts)){
-        fill_unfold_hist(unfold_setup, UnfoldSpaceName::unfolded);
     }
     else {
         return;
@@ -356,8 +404,14 @@ void ISRUnfold::fill_unfold_hist(ISRUnfoldSetUp* unfold_setup, const UnfoldSpace
  void ISRUnfold::fill_unfold_hist(ISRUnfoldSetUp* unfold_setup, TString suf, Double_t weight, const UnfoldSpaceName mode){
     // bin_name: [dipt-dimass]_[unfolded_fine_O-window_v1_UO]
     // "[" + dipt-dimass + "]_[" + level + "__unfolded_fine_O-window_v1_UO + "]" 
+    if (unfold_setup->bin_turned_off(mode)){
+        return;
+    } 
+    
     bool is_2d = unfold_setup->is_2d_unfold();
     string bin_name = unfold_setup->get_bin_name(mode);
+    // check if this bin is turned off
+    // then used return
     string phase_name = get_phase_name(mode);
 
     if (is_2d){
@@ -389,6 +443,7 @@ void ISRUnfold::fill_unfold_hist(ISRUnfoldSetUp* unfold_setup, const UnfoldSpace
         string hname = string(p.prefix) + string(p.hprefix) + var_name + 
             "_[" + phase_name + "__" + unfold_setup->get_raw_bin_name(mode) + "]_" + 
             unfold_setup->get_second_axis_var_name() + "_" + second_var_range + string(p.suffix) + string(suf);
+        // check here
         FillHist(hname, get_value(mode, var_name), weight, map_unfold_1d_bins[bin_name].size()-1, map_unfold_1d_bins[bin_name].data());
     }
 }

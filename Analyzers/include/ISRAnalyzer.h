@@ -30,17 +30,21 @@ class ISRAnalyzer : public ISRUnfold {
 public:
     virtual void initializeAnalyzer();
     virtual void executeEvent();
-    virtual void executeEventGen();
+    virtual void executeEventGen(Parameter& p);
     virtual void executeEventWithParameter(Parameter& p);
     virtual void executeEventWithParameter(Parameter&& p){Parameter pp=p;
         executeEventWithParameter(pp);}
-    virtual Parameter MakeParameter(TString key);
+    virtual Parameter MakeParameter(TString key, TString option="");
     virtual bool PassSelection(Parameter& p);
     virtual void EvalWeights(Parameter& p);
     virtual void ResetRecoWeights(Parameter& p);
     virtual void FillHists(Parameter& p);
+    void FillLeptonHists(Parameter& p);   
+    TString add_postfix_BE_EE(Parameter& p, int lepton_index, bool add_sign=false);
+    bool PassHEMElectron(Electron electron);
+    bool RemoveElectron(Electron electron);
+    bool RemoveMuon(Muon muon, double phi_min, double phi_max, bool for_endcap, int eta_sign=0);
     
-    bool pass_lepton_kinematic_selections(const Parameter& p, Particle* l0, Particle* l1);
     int get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& letpon0, Gen& lepton1);
     int get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& letpon0, Gen& lepton1, int mode, vector<const Gen*>& added_photons);
     int get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<const Gen*>& leptons, Gen& lepton0, Gen& lepton1, bool verbose=false);
