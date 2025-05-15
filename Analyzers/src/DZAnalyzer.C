@@ -125,6 +125,14 @@ void DZAnalyzer::FillHists(Parameter& p){
     FillHistsDZ(p,"_den");
     FillHistsDZ(p,"_test_den");
     if(p.channel=="ee"){
+        if (((Electron*)p.lepton0)->PassFilter("hltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter") != ((Electron*)p.lepton1)->PassFilter("hltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter")){
+            cout << "IS IT POSSIBLE???" << endl;
+            cout << "lep0 pt " << p.lepton0->Pt() << endl;
+            cout << "lep0 eta " << p.lepton0->Eta() << endl;
+
+            cout << "lep1 pt " << p.lepton1->Pt() << endl;
+            cout << "lep1 eta " << p.lepton1->Eta() << endl;
+        }
       if(((Electron*)p.lepton0)->PassFilter("hltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter")
 	 && ((Electron*)p.lepton1)->PassFilter("hltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter")){
 	FillHistsDZ(p,"_num");

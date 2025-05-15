@@ -20,9 +20,6 @@ def GetJobID(logfiledir, cycle, jobnumber, hostname):
 
   jobid = ""
 
-  if hostname=="KNU":
-    jobid = open(logfiledir+'/submitlog.log').readlines()[0].split('.')[0]
-
   return jobid
 
 def GetLogLastLine(lines):
@@ -46,12 +43,9 @@ def CheckJobStatus(logfiledir, cycle, jobnumber, hostname):
   path_log_e = ""
   path_log_o = ""
 
-  if hostname=="KISTI" or hostname=="TAMSA1" or hostname=="TAMSA2":
+  if hostname=="KISTI" or hostname=="TAMSA1" or hostname=="TAMSA2" or hostname=="KNU":
     path_log_e = logfiledir+"/job_"+str(jobnumber)+".err"
     path_log_o = logfiledir+"/job_"+str(jobnumber)+".log"
-  if hostname=="KNU":
-    path_log_e = logfiledir+'job_'+str(jobnumber)+'/stderr.log'
-    path_log_o = logfiledir+'job_'+str(jobnumber)+'/stdout.log'
 
   if (not os.path.exists(path_log_e)) or (not os.path.exists(path_log_o)):
     return "BATCH JOB NOT STARTED"
@@ -60,7 +54,11 @@ def CheckJobStatus(logfiledir, cycle, jobnumber, hostname):
   length_log_e = 0
   is_not_mounting_err = False
   for e_l in log_e:
-    if "WARNING: Not mounting" in e_l:
+    if "**** Following environment variables are going to be unset." in e_l:
+        continue
+    elif "PROJECT_MULTIARCH_TARGET" in e_l:
+        length_log_e -= 1
+    elif "WARNING: Not mounting" in e_l:
       length_log_e -= 1
       is_not_mounting_err = True
     else:
@@ -142,4 +140,3 @@ def CheckJobStatus(logfiledir, cycle, jobnumber, hostname):
         return "RUNNING\t"+perct+"\tEVDONE:"+EventDone+"\t"+line_JobStart
 
       return LASTLINE
-

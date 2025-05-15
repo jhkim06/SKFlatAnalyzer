@@ -61,8 +61,18 @@ TUnfoldBinning* ISRUnfoldBin::create_2d_tunfold_bin() const {
     return bin;
 }
 
-vector<double> ISRUnfoldBin::create_1d_bin() {
-    vector<double> bin = bins.at(first_axis_var_name).at(first_axis_original_bin_name);
+TUnfoldBinning* ISRUnfoldBin::create_1d_bin() {
+    vector<double> axis1 = bins.at(first_axis_var_name).at(first_axis_original_bin_name);
+    int n_bins = axis1.size()-1;
+
+    string bin_name = this->get_bin_name();
+    TUnfoldBinning* bin = new TUnfoldBinning((bin_name).c_str()); 
+    bin->AddAxis(
+            this->first_axis_var_name.c_str(),
+            n_bins,
+            axis1.data(),
+            this->use_first_axis_uf,
+            this->use_first_axis_of);
     return bin;
 }
 

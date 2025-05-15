@@ -34,7 +34,8 @@ public:
     virtual void executeEventWithParameter(Parameter& p);
     virtual void executeEventWithParameter(Parameter&& p){Parameter pp=p;
         executeEventWithParameter(pp);}
-    virtual Parameter MakeParameter(TString key, TString option="");
+    virtual Parameter MakeParameter(TString key, TString option="", TString option_shared="");
+    std::vector<Electron> ISRGetElectrons(TString id, double ptmin, double fetamax, bool vetoHEM = false, int set=0, int member=0) const; 
     virtual bool PassSelection(Parameter& p);
     virtual void EvalWeights(Parameter& p);
     virtual void ResetRecoWeights(Parameter& p);
@@ -45,11 +46,9 @@ public:
     bool RemoveElectron(Electron electron);
     bool RemoveMuon(Muon muon, double phi_min, double phi_max, bool for_endcap, int eta_sign=0);
     
-    int get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& letpon0, Gen& lepton1);
-    int get_DY_gen_particles(const vector<Gen>& gens, Gen& parton0, Gen& parton1, Gen& letpon0, Gen& lepton1, int mode, vector<const Gen*>& added_photons);
-    int get_DY_bare_lepton_pair(const vector<Gen>& gens, const vector<const Gen*>& leptons, Gen& lepton0, Gen& lepton1, bool verbose=false);
-    int get_DY_dressed_lepton_pair(const vector<Gen>& gens, const vector<const Gen*>& leptons, vector<const Gen*>& photons, Gen& lepton0, Gen& lepton1,
-                                   const DressedMode mode, vector<const Gen*>& added_photons, const double dR = 0.1);
+    void get_DY_gen_particles();
+    void get_DY_bare_lepton_pair(bool verbose=false);
+    void get_DY_dressed_lepton_pair(Gen& lepton0, Gen& lepton1, const DressedMode mode, const double dR = 0.1);
     void save_gen_history(const vector<Gen>& gens, const Gen& lepton, vector<int>& partindex_vector, const int index_limit = -1);
     void print_gen_particles(const vector<Gen>& gens);
     
@@ -60,12 +59,14 @@ public:
     ISRAnalyzer();
     ~ISRAnalyzer();
     
-    //void FillGenAFBHists(TString pre,TString suf,const Gen& genl0,const Gen& genl1,const Gen& genphotons,double w);
-    
     TString hardprefix;
-    map<TString,TH3D*> map_hist_cost;
     bool IsNominalRun=true;
     bool IsSkimmed=false;
+
+    Gen gen_p0_isr, gen_p1_isr, gen_l0_bare, gen_l1_bare;
+    vector<Gen*> gen_leptons;
+    vector<Gen*> gen_photons;
+    int DY_index;
     
 private:
     int job_number;

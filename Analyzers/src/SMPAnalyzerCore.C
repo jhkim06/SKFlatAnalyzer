@@ -3,7 +3,6 @@
 SMPAnalyzerCore::SMPAnalyzerCore(){}
 SMPAnalyzerCore::~SMPAnalyzerCore(){
   if(roc) delete roc;
-  if(rocele) delete rocele;
   for(std::map< TString, TH4D* >::iterator mapit = maphist_TH4D.begin(); mapit!=maphist_TH4D.end(); mapit++){
     delete mapit->second;
   }
@@ -296,6 +295,7 @@ bool SMPAnalyzerCore::PassSelection(Parameter& p){
 
   if(p.c.nleptonmin>=2) 
     if(p.lepton0->Charge()*p.lepton1->Charge()>0) p.hprefix+="ss_";
+    //if(p.lepton0->Charge()*p.lepton1->Charge()>0) return false;
   if(p.weightbit&NominalWeight) FillCutflow(p.prefix+p.hprefix+"cutflow"+p.suffix,"charge",weight);
 
   if(p.option.Contains("triggermatching")){
@@ -847,18 +847,13 @@ double SMPAnalyzerCore::GetTopPtReweight2(const std::vector<Gen>& gens){
 void SMPAnalyzerCore::SetupRoccoR(){
   cout<<"[SMPAnalyzerCore::SetupRoccoR] setting Rocheseter Correction"<<endl;
   TString erashort=GetEraShort();
+  TString datapath=getenv("DATA_DIR");
 
-  //TString rocpath=datapath+"/"+GetEra()+"/RoccoR/RoccoR"+GetEraShort()+"UL.txt"; //central roccor for amc
-  TString rocpath=TString(getenv("SKFlat_WD"))+"/external/Aepcor/u_"+erashort(2,3)+"UL_1.txt"; //roccor for minnlo
+  TString rocpath=datapath+"/"+GetEra()+"/RoccoR/RoccoR"+GetEraShort()+"UL.txt"; //central roccor for amc
+  //TString rocpath=TString(getenv("SKFlat_WD"))+"/external/Aepcor/u_"+erashort(2,3)+"UL_1.txt"; //roccor for minnlo
   if(IsExists(rocpath)) roc=new RoccoR(rocpath.Data());
   else cout<<"[SMPAnalyzerCore::SetupRoccoR] no "+rocpath<<endl;
 
-  TString rocelepath=TString(getenv("SKFlat_WD"))+"/external/Aepcor/e_"+erashort(2,3)+"UL_1.txt";
-  if(IsExists(rocelepath)){
-    rocele=new Aepcor;
-    rocele->init(rocelepath.Data(),Aepres::CB);
-  }
-  else cout<<"[SMPAnalyzerCore::SetupRoccoR] no "+rocelepath<<endl;
 }
 double SMPAnalyzerCore::GetZ0Weight(double valx){
   if(IsDATA) return 1.;
@@ -1499,39 +1494,7 @@ std::vector<Muon> SMPAnalyzerCore::MuonMomentumCorrection(const vector<Muon>& mu
 }
 
 std::vector<Electron> SMPAnalyzerCore::ElectronEnergyCorrection(const vector<Electron>& electrons,int set,int member){
-  if(!rocele) return std::vector<Electron>(electrons);
-  std::vector<Electron> out;
-  for(auto electron:electrons){
-    if(set>=0){
-      double rc=1.;
-      //double rcerr=0.;
-      double el_eta=electron.scEta();
-      double el_phi=electron.Phi();
-      if(IsDATA){
-	rc=rocele->kScaleDT(electron.UncorrPt(),el_eta,el_phi,electron.R9(),run,set,member);
-      }else{	
-	Gen gen=SMPGetGenMatchedLepton(electron,gens,1);
-	gRandom->SetSeed((run<<15)+(lumi<<10)+(event<<5)+electron.Eta()*100);
-	double u=gRandom->Rndm();
-	if(!gen.IsEmpty()&&fabs(electron.Pt()/gen.Pt()-1.)<0.5){
-	  rc=rocele->kSpreadMC(electron.UncorrPt(),el_eta,el_phi,electron.R9(),u,gen.Pt(),set,member);
-	}else{
-	  //rc=rocele->kSmearMC(electron.UncorrPt(),el_eta,el_phi,electron.R9(),u,set,member);
-	  rc=1.;
-	}
-      }      
-      if(TMath::IsNaN(rc)) rc=1.;
-      electron*=rc*electron.UncorrE()/electron.E();
-    }else if(set==-1){ //no energe cor
-      electron*=electron.UncorrE()/electron.E();
-    }else{
-      cout<<"[SMPAnalyzerCore::ElectronEnergyCorrection] wrong set "<<set<<endl;
-      exit(ENODATA);
-    }
-    out.push_back(electron);
-  }
-  std::sort(out.begin(),out.end(),PtComparing);
-  return out;
+  return std::vector<Electron>(electrons);
 }
   
 void SMPAnalyzerCore::FillCutflow(TString histname,TString label,double weight){
@@ -2188,28 +2151,6 @@ void SMPAnalyzerCore::SetupL1PrefiringWeight(){
       }
     }
   }
-  {
-    TString infile=(TString)getenv("SKFlat_WD")+"/external/RocPFProb/prefiring_table_v1.txt";
-    if(IsExists(infile)){
-      cout<<"[SMPAnalyzerCore::SetupL1PrefiringWeight] using file "+infile<<endl;
-      rocpfprob=new RocPFProb(infile.Data());
-    }else{
-      cout<<"[SMPAnalyzerCore::SetupL1PrefiringWeight] no "+infile<<endl;
-    }
-  }
-  {
-    TString infile=(TString)getenv("SKFlat_WD")+"/external/RocPFProb/fine_grain_map.root";
-    if(IsExists(infile)){
-      cout<<"[SMPAnalyzerCore::SetupL1PrefiringWeight] using file "+infile<<endl;
-      TFile f(infile);
-      fFGPP=(TH2*)f.Get("fgpp_map");
-      fFGPM=(TH2*)f.Get("fgpm_map");
-      if(fFGPP) fFGPP->SetDirectory(NULL);
-      if(fFGPM) fFGPM->SetDirectory(NULL);
-    }else{
-      cout<<"[SMPAnalyzerCore::SetupL1PrefiringWeight] no "+infile<<endl;
-    }
-  }    
   return;
 }
 void SMPAnalyzerCore::DeleteL1PrefiringWeight(){
@@ -2217,9 +2158,6 @@ void SMPAnalyzerCore::DeleteL1PrefiringWeight(){
   if(fL1Prefiring_jet) delete fL1Prefiring_jet;
   for(int i=0;i<12;i++)
     if(fL1Prefiring_muon[i]) delete fL1Prefiring_muon[i];
-  if(rocpfprob) delete rocpfprob;
-  if(fFGPP) delete fFGPP;
-  if(fFGPM) delete fFGPM;
   return;
 }
 double SMPAnalyzerCore::getPrefiringRateEcal(double eta, double pt, TH2* h_prefmap, int sys, int mode) const {
@@ -2263,67 +2201,9 @@ double SMPAnalyzerCore::getPrefiringRateEcal(double eta, double pt, TH2* h_prefm
   return prefrate;
 }
 double SMPAnalyzerCore::getPrefiringRatePhoton(double eta, double pt, int sys, int mode) const {
-  if(mode>2){
-    int iera=0;
-    if(DataEra=="2016preVFP") iera=1;
-    else if(DataEra=="2016postVPF") iera=2;
-    else if(DataEra=="2017") iera=3;
-    if(mode==3) //RocPFProb
-      return rocpfprob->getPrefireProb(iera,1,eta,pt);
-    else if(mode==4){ //RocPFProb linear interpolation
-      double abseta=fabs(eta);
-      int sign=eta>0?1:-1;
-      double x0,y0,x1,y1;
-      if(abseta<2) return 0;
-      else if(abseta<2.125){
-	x0=2; y0=0;
-	x1=2.125; y1=rocpfprob->getPrefireProb(iera,1,sign*x1,pt);
-      }else if(abseta<2.375){
-	x0=2.125; y0=rocpfprob->getPrefireProb(iera,1,sign*x0,pt);
-	x1=2.375; y1=rocpfprob->getPrefireProb(iera,1,sign*x1,pt);
-      }else if(abseta<2.625){
-	x0=2.375; y0=rocpfprob->getPrefireProb(iera,1,sign*x0,pt);
-	x1=2.625; y1=rocpfprob->getPrefireProb(iera,1,sign*x1,pt);
-      }else{
-	x0=2.625; y0=rocpfprob->getPrefireProb(iera,1,sign*x0,pt);
-	x1=2.875; y1=rocpfprob->getPrefireProb(iera,1,sign*x1,pt);
-      }
-      return (y1-y0)/(x1-x0)*(abseta-x0)+y0;
-    }else if(mode==5){ //RocPFProb linear interpolation only |eta|<2.5
-      double abseta=fabs(eta);
-      if(abseta>2.5)
-	return rocpfprob->getPrefireProb(iera,1,eta,pt);
-      int sign=eta>0?1:-1;
-      double x0,y0,x1,y1;
-      if(abseta<2) return 0;
-      else if(abseta<2.125){
-	x0=2; y0=0;
-	x1=2.125; y1=rocpfprob->getPrefireProb(iera,1,sign*x1,pt);
-      }else{
-	x0=2.125; y0=rocpfprob->getPrefireProb(iera,1,sign*x0,pt);
-	x1=2.375; y1=rocpfprob->getPrefireProb(iera,1,sign*x1,pt);
-      }
-      return (y1-y0)/(x1-x0)*(abseta-x0)+y0;
-    }else if(mode==6){
-      double abseta=fabs(eta);
-      if(abseta<2) return 0;
-      TH2* fg_map=NULL;
-      if(eta>0) fg_map=fFGPP;
-      else fg_map=fFGPM;
-      int ibin=fg_map->FindBin(eta,pt);
-      return fg_map->GetBinContent(ibin);
-    }
-  }
   return getPrefiringRateEcal(eta, pt, fL1Prefiring_photon, sys, mode);
 }
 double SMPAnalyzerCore::getPrefiringRateJet(double eta, double pt, int sys, int mode) const {
-  if(mode>2){
-    int iera=0;
-    if(DataEra=="2016preVFP") iera=1;
-    else if(DataEra=="2016postVPF") iera=2;
-    else if(DataEra=="2017") iera=3;
-    return rocpfprob->getPrefireProb(iera,2,eta,pt);
-  }    
   return getPrefiringRateEcal(eta, pt, fL1Prefiring_jet, sys, mode);
 }
 double SMPAnalyzerCore::getPrefiringRateMuon(double eta, double phi, double pt, int sys) const {

@@ -10,8 +10,8 @@ export DATA_DIR=$SKFlat_WD/data/$SKFlatV
 #### use cvmfs for root ####
 export CMS_PATH=/cvmfs/cms.cern.ch
 source $CMS_PATH/cmsset_default.sh
-export SCRAM_ARCH=slc7_amd64_gcc900
-export cmsswrel='cmssw/CMSSW_11_2_5'
+export SCRAM_ARCH=el9_amd64_gcc12
+export cmsswrel='cmssw/CMSSW_15_0_1'
 cd /cvmfs/cms.cern.ch/$SCRAM_ARCH/cms/$cmsswrel/src
 echo "@@@@ SCRAM_ARCH = "$SCRAM_ARCH
 echo "@@@@ cmsswrel = "$cmsswrel
@@ -38,19 +38,16 @@ elif [[ $HOSTNAME == *"tamsa2"* ]]; then
   export SKFlatRunlogDir="/data6/Users/$USER/SKFlatRunlog/"
   export SKFlatOutputDir="/data6/Users/$USER/SKFlatOutput/"
 
-elif [[ $HOSTNAME == *"cms2"* ]]; then
-
-  echo "@@@@ Working on cms2"
-  export SKFlatRunlogDir="/data6/Users/$USER/SKFlatRunlog/"
-  export SKFlatOutputDir="/data6/Users/$USER/SKFlatOutput/"
-
 elif [[ $HOSTNAME == *"knu"* ]]; then
 
   echo "@@@@ Working on KNU"
-  export SKFlatRunlogDir="/u/user/$USER/scratch/SKFlatRunlog/"
-  export SKFlatOutputDir="/u/user/$USER/scratch/SKFlatOutput/"
+  export SKFlatRunlogDir="/d0/scratch/$USER/SKFlatRunlog/"
+  export SKFlatOutputDir="/d0/scratch/$USER/SKFlatOutput/"
 
 fi
+
+mkdir -p $SKFlatRunlogDir
+mkdir -p $SKFlatOutputDir
 
 alias skout="cd $SKFlatOutputDir/$SKFlatV/"
 
@@ -59,9 +56,8 @@ export PYTHONDIR=$SKFlat_WD/python/
 export PATH=${MYBIN}:${PYTHONDIR}:${PATH}
 
 export ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:$SKFlat_WD/DataFormats/include/:$SKFlat_WD/AnalyzerTools/include/:$SKFlat_WD/Analyzers/include/
-export ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:$SKFlat_WD/external/TH4D
-export ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:$SKFlat_WD/Plotter/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SKFlat_LIB_PATH
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/bin/python2.7:$LD_LIBRARY_PATH
 
 source $SKFlat_WD/bin/BashColorSets.sh
 
@@ -72,6 +68,7 @@ if [ "$1" = "-q" ];then
     return
 fi
 
+alias python="python3"
 ## Todo list ##
 python python/PrintToDoLists.py
 source $SKFlat_WD/tmp/ToDoLists.sh
@@ -80,6 +77,10 @@ rm $SKFlat_WD/tmp/ToDoLists.sh
 CurrentGitBranch=`git branch | grep \* | cut -d ' ' -f2`
 printf "> Current SKFlatAnalyzer branch : "${BRed}$CurrentGitBranch${Color_Off}"\n"
 echo "-----------------------------------------------------------------"
+
 ## Log Dir ##
+#python python/PrintOldLogs.py
+#source $SKFlat_WD/tmp/OldLogs.sh
+#rm $SKFlat_WD/tmp/OldLogs.sh
 echo "* Your Log Directory Usage (ctrl+c to skip)"
 du -sh $SKFlatRunlogDir

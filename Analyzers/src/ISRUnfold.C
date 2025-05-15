@@ -112,9 +112,9 @@ ISRUnfoldBin* ISRUnfold::create_2d_unfold_bin(string axis1_name, string bin_name
     return tunfold_par;
 }
 
-ISRUnfoldBin* ISRUnfold::create_1d_unfold_bin(string axis_name, string bin_name) {
+ISRUnfoldBin* ISRUnfold::create_1d_unfold_bin(string axis_name, string bin_name, bool uf, bool of) {
 
-    ISRUnfoldBin* tunfold_par = new ISRUnfoldBin(axis_name, bin_name);
+    ISRUnfoldBin* tunfold_par = new ISRUnfoldBin(axis_name, bin_name, uf, of);
 
     string full_bin_name = tunfold_par->get_bin_name();
     map_unfold_1d_bins[full_bin_name] = tunfold_par->create_1d_bin();
@@ -298,14 +298,25 @@ void ISRUnfold::fill_unfold_response_matrix(ISRUnfoldSetUp* unfold_setup, TStrin
         double value_unfolded = get_value(UnfoldSpaceName::unfolded, var_name);
         double value_folded = get_value(UnfoldSpaceName::folded, var_name); 
 
-        FillHist(hname, value_unfolded, value_folded, reco_weight, 
-                map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
-                map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
+        TH2D *this_hist = GetHist2D(hname);
+        if (!this_hist){
+            this_hist = (TH2D*) TUnfoldBinning::CreateHistogramOfMigrations(map_unfold_1d_bins[unfolded_bin_name], map_unfold_1d_bins[folded_bin_name], hname.data());
+            this_hist->SetDirectory(NULL); 
+            maphist_TH2D[hname] = this_hist;
+        }
+		int unfolded_index = map_unfold_1d_bins[unfolded_bin_name]->GetGlobalBinNumber(value_unfolded);
+		int folded_index = map_unfold_1d_bins[folded_bin_name]->GetGlobalBinNumber(value_folded);
+        this_hist->Fill(unfolded_index, folded_index, reco_weight);
+        this_hist->Fill(unfolded_index, 0., gen_weight-reco_weight); // bin zero for 2D 
 
-        // bin zero
-        FillHist(hname, value_unfolded, -1, gen_weight-reco_weight, 
-                map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
-                map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
+        //FillHist(hname, value_unfolded, value_folded, reco_weight, 
+        //        map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
+        //        map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
+
+        //// bin zero
+        //FillHist(hname, value_unfolded, -1, gen_weight-reco_weight, 
+        //        map_unfold_1d_bins[unfolded_bin_name].size()-1, map_unfold_1d_bins[unfolded_bin_name].data(), 
+        //        map_unfold_1d_bins[folded_bin_name].size()-1, map_unfold_1d_bins[folded_bin_name].data());
     }
 }
 
@@ -444,7 +455,19 @@ void ISRUnfold::fill_unfold_hist(ISRUnfoldSetUp* unfold_setup, const UnfoldSpace
             "_[" + phase_name + "__" + unfold_setup->get_raw_bin_name(mode) + "]_" + 
             unfold_setup->get_second_axis_var_name() + "_" + second_var_range + string(p.suffix) + string(suf);
         // check here
-        FillHist(hname, get_value(mode, var_name), weight, map_unfold_1d_bins[bin_name].size()-1, map_unfold_1d_bins[bin_name].data());
+        //fillhist(hname, get_value(mode, var_name), weight, map_unfold_1d_bins[bin_name].size()-1, map_unfold_1d_bins[bin_name].data());
+
+        // fill hist
+        TUnfoldBinning* bin = map_unfold_1d_bins[bin_name];
+        TH1D *this_hist = GetHist1D(hname);
+        if (!this_hist){
+            this_hist = (TH1D*) bin->CreateHistogram(hname.data());
+            this_hist->SetDirectory(NULL);
+            maphist_TH1D[hname] = this_hist;
+        }
+
+		int index = bin->GetGlobalBinNumber(get_value(mode, var_name));
+        this_hist->Fill(index, weight);
     }
 }
 void ISRUnfold::WriteHist(){
@@ -454,6 +477,19 @@ void ISRUnfold::WriteHist(){
     // loop over bin definition
     if (write_bins==true){
         for (std::map<TString,TUnfoldBinning*>::iterator mapit = map_unfold_2d_bins.begin(); mapit!=map_unfold_2d_bins.end(); mapit++){
+            TString this_fullname=mapit->first;
+            TString this_name=this_fullname(this_fullname.Last('/')+1,this_fullname.Length());
+            TString this_suffix=this_fullname(0,this_fullname.Last('/'));
+            TDirectory *dir = outfile->GetDirectory(this_suffix);
+            if(!dir){
+                outfile->mkdir(this_suffix);
+            }
+            outfile->cd(this_suffix);
+            mapit->second->Write("[tunfold-bin]_"+ this_name);
+            outfile->cd();
+        }
+
+        for (std::map<TString,TUnfoldBinning*>::iterator mapit = map_unfold_1d_bins.begin(); mapit!=map_unfold_1d_bins.end(); mapit++){
             TString this_fullname=mapit->first;
             TString this_name=this_fullname(this_fullname.Last('/')+1,this_fullname.Length());
             TString this_suffix=this_fullname(0,this_fullname.Last('/'));

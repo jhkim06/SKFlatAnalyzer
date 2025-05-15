@@ -1,4 +1,9 @@
-all: TH4D DataFormats AnalyzerTools GEScaleSyst Analyzers Archive
+all: TUnfold TH4D DataFormats AnalyzerTools GEScaleSyst Analyzers Archive
+
+TUnfold::
+	(cd external/TUnfold; make)
+	(mvexist.sh external/TUnfold/TUnfold_Dict_rdict.pcm lib/)
+	(mvexist.sh external/TUnfold/libTUnfold.rootmap lib/)
 
 TH4D::
 	(cd external/TH4D; make)
@@ -27,6 +32,7 @@ Analyzers::
 
 Archive::
 	(tar -zcf lib/TH4D.tar.gz external/TH4D/TH4D.*)
+	(tar --exclude='TUnfold_LinkDef.h' -zcf lib/TUnfold.tar.gz external/TUnfold/TUnfold*)
 	(tar -zcf lib/DataFormats.tar.gz DataFormats)
 	(tar -zcf lib/AnalyzerTools.tar.gz AnalyzerTools)
 	(tar -zcf lib/GEScaleSyst.tar.gz external/GEScaleSyst/GEScaleSyst.*)
@@ -34,6 +40,7 @@ Archive::
 
 clean::
 	(cd external/TH4D; make clean)
+	(cd external/TUnfold; make clean)
 	(cd DataFormats; make clean)
 	(cd AnalyzerTools; make clean)
 	(cd external/GEScaleSyst; make clean)
@@ -41,6 +48,7 @@ clean::
 
 distclean::
 	(cd external/TH4D; make distclean)
+	(cd external/TUnfold; make distclean)
 	(cd DataFormats; make distclean)
 	(cd AnalyzerTools; make distclean)
 	(cd external/GEScaleSyst; make distclean)

@@ -36,6 +36,7 @@ public:
   bool probe_IsoMu27;
   bool probe_Mu17Leg1;
   bool probe_Mu8Leg2;
+  bool probe_DZfilter;
 
   float probe_pt;
   float probe_pt_cor;

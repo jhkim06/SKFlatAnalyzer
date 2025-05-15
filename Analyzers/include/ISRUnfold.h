@@ -34,7 +34,7 @@ public:
             string axis2_name, string window_name, bool axis2_uf, bool axis2_of);
     void create_2d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2, 
             double dipt_low_cut, double dipt_high_cut, double dimass_low_cut, double dimass_high_cut, bool turn_off_bin1=false, bool turn_off_bin2=false);
-    ISRUnfoldBin* create_1d_unfold_bin(string axis_name, string bin_name);
+    ISRUnfoldBin* create_1d_unfold_bin(string axis_name, string bin_name, bool uf, bool of);
     void create_1d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2, 
             double dipt_low_cut, double dipt_high_cut, vector<double>& dimass_cuts, bool turn_off_bin1=false, bool turn_off_bin2=false);
     void create_1d_unfold_set(ISRUnfoldBin* bin1, ISRUnfoldBin* bin2, 
@@ -79,7 +79,7 @@ private :
     map<TString,double> gen_weights;
 
     map<TString, TUnfoldBinning*> map_unfold_2d_bins; 
-    map<TString, vector<double>> map_unfold_1d_bins; 
+    map<TString, TUnfoldBinning*> map_unfold_1d_bins; 
     bool write_bins=false;
 
     vector<ISRUnfoldSetUp*> unfold_setups;

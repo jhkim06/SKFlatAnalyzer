@@ -12,6 +12,7 @@ const map<TString, map<TString, vector<double>>> bins = {
                  {"coarse", {0., 4., 8., 12., 18., 28., 40., 55., 75., 100.}},
                  {"coarse_v3", {0., 6., 12., 18., 28., 40., 55., 75., 100.}},
                  {"fine", {0., 2., 4., 6., 8., 10., 12., 14., 18., 23, 28., 34., 40., 47.5, 55., 65., 75., 87.5, 100.}},
+
                  //{"coarse", {0., 4., 8., 12., 17., 24.,  32.,  43.,  65.,  100}},
                  //{"coarse_v3", {0., 6., 12., 20,  32.,  43.,  65.,  100}},
                  //{"fine", {0., 2., 4., 6., 8., 10., 12., 14., 17., 20., 24., 28., 32., 37., 43., 52., 65., 80., 100}},
@@ -75,20 +76,21 @@ public:
         second_axis_bin_name = second_axis_original_bin_name + add_uo_postfix(use_second_axis_uf, use_second_axis_of);
     }
     // for 1D
-    ISRUnfoldBin(string axis_var_name, string axis_bin_name):
-        first_axis_var_name{axis_var_name}, first_axis_original_bin_name{axis_bin_name}
+    ISRUnfoldBin(string axis_var_name, string axis_bin_name, bool uf=false, bool of=false):
+        first_axis_var_name{axis_var_name}, first_axis_original_bin_name{axis_bin_name},
+        use_first_axis_uf{uf}, use_first_axis_of{of}
     {
         is_2d = false;
         var_name = first_axis_var_name;
 
-        first_axis_bin_name = first_axis_original_bin_name;
+        first_axis_bin_name = first_axis_original_bin_name + add_uo_postfix(use_first_axis_uf, use_first_axis_of);
         if (first_axis_var_name == "dipt")
             second_axis_var_name = "dimass";
         else 
             second_axis_var_name = "dipt";
     }
     TUnfoldBinning* create_2d_tunfold_bin() const;
-    vector<double> create_1d_bin();
+    TUnfoldBinning* create_1d_bin();
     vector<double> get_boundary_bin_edges();
     string get_bin_name() const;
     inline string get_var_name() {

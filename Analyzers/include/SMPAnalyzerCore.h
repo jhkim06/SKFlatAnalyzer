@@ -7,10 +7,8 @@
 #include "TPRegexp.h"
 #include "TProfile.h"
 #include "RoccoR.h"
-#include "Aepcor.h"
 #include "TH4D.h"
 #include "EfficiencyTool.h"
-#include "RocPFProb.h"
 
 class SMPAnalyzerCore : public AnalyzerCore {
 
@@ -268,9 +266,6 @@ public:
   virtual double getPrefiringRateJet(double eta, double pt, int sys, int mode=0) const;
   virtual double getPrefiringRateMuon(double eta, double phi, double pt, int sys) const;
   virtual double GetL1PrefiringWeight(int mode=0) const;
-  RocPFProb* rocpfprob=NULL;
-  TH2* fFGPP=NULL;
-  TH2* fFGPM=NULL;
   TH2* fL1Prefiring_photon=NULL;
   TH2* fL1Prefiring_jet=NULL;
   TF1* fL1Prefiring_muon[12]={};
@@ -288,7 +283,6 @@ public:
   Gen gen_p0,gen_p1,gen_l0,gen_l1,gen_l0_dressed,gen_l1_dressed,gen_l0_bare,gen_l1_bare;
 
   RoccoR* roc=NULL;
-  Aepcor* rocele=NULL;
 
   std::vector<Muon> MuonMomentumCorrection(const vector<Muon>& muons,int sys,int set=0,int member=0);
   std::vector<Electron> ElectronEnergyCorrection(const vector<Electron>& electrons,int set=0,int member=0);

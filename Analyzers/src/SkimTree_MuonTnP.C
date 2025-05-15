@@ -38,6 +38,7 @@ void SkimTree_MuonTnP::initializeAnalyzer(){
   newtree->Branch("probe_IsoMu27",&probe_IsoMu27);
   newtree->Branch("probe_Mu17Leg1",&probe_Mu17Leg1);
   newtree->Branch("probe_Mu8Leg2",&probe_Mu8Leg2);  
+  newtree->Branch("probe_DZfilter",&probe_DZfilter);  
 
   newtree->Branch("probe_pt",&probe_pt);
   newtree->Branch("probe_pt_cor",&probe_pt_cor);
@@ -149,6 +150,11 @@ void SkimTree_MuonTnP::FillHists(Parameter& p){
       probe_IsoMu27=PassSLT2(&probe);
       probe_Mu17Leg1=PassDLT1(&probe);
       probe_Mu8Leg2=PassDLT2(&probe);
+      TString dzfilter;
+      if(DataYear==2016) dzfilter="hltDiMuonGlb17Trk8RelTrkIsoFiltered0p4DzFiltered0p2"; 
+      else if(DataYear==2017) dzfilter="hltDiMuon178RelTrkIsoFiltered0p4DzFiltered0p2";
+      else if(DataYear==2018) dzfilter="hltDiMuon178RelTrkIsoFiltered0p4DzFiltered0p2";
+      probe_DZfilter = probe.PassFilter(dzfilter);
       probe_pt=probe.MiniAODPt();
       probe_pt_cor=probe.Pt();
       probe_eta=probe.Eta();

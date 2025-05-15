@@ -39,6 +39,7 @@ public:
   bool passHltEle35WPTightGsf;
   bool passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg1;
   bool passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg2;
+  bool passHltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter; // hltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter
   float el_e;
   float el_e_cor;
   float el_et;

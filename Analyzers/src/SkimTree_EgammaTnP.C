@@ -35,6 +35,7 @@ void SkimTree_EgammaTnP::initializeAnalyzer(){
   newtree->Branch("passHltEle35WPTightGsf",&passHltEle35WPTightGsf);
   newtree->Branch("passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg1",&passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg1);
   newtree->Branch("passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg2",&passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg2);
+  newtree->Branch("passHltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter",&passHltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter);
   newtree->Branch("el_e",&el_e);
   newtree->Branch("el_e_cor",&el_e_cor);
   newtree->Branch("el_et",&el_et);
@@ -147,6 +148,7 @@ void SkimTree_EgammaTnP::FillHists(Parameter& p){
       passHltEle35WPTightGsf=probe.PassPath("HLT_Ele35_WPTight_Gsf_v");
       passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg1=probe.PassFilter("hltEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg1Filter");
       passHltEle23Ele12CaloIdLTrackIdLIsoVLLeg2=probe.PassFilter("hltEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg2Filter");
+      passHltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter=probe.PassFilter("hltEle23Ele12CaloIdLTrackIdLIsoVLDZFilter");
       el_e=probe.UncorrE();
       el_e_cor=probe.Energy();
       el_et=probe.Et()*probe.UncorrE()/probe.Energy();
